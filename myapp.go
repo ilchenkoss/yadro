@@ -74,7 +74,7 @@ func stringNormalization(notNormalizedString string) string {
 	for _, word := range strings.Fields(notNormalizedString) {
 		var stemmedWord, err = snowball.Stem(cleanWord(word), "english", true)
 		if err == nil {
-			cleanString = cleanString + " " + stemmedWord
+			cleanString += " " + stemmedWord
 		}
 	}
 
@@ -85,15 +85,20 @@ func stringNormalization(notNormalizedString string) string {
 			resultedWords[tok.Text] = true
 			resultedString += tok.Text + " "
 		}
+		//fmt.Println(tok.Text, tok.Tag)
 	}
 
-	return resultedString[:len(resultedString)-1]
+	if len(resultedString) < 1 {
+		return ""
+	} else {
+		return resultedString[:len(resultedString)-1]
+	}
 
 }
 
 func main() {
 
-	uncleanedWords := flag.String("s", "i you s f long sugar i'll follower follow brings bunch of questions", "string to words")
+	uncleanedWords := flag.String("s", "good", "string to words")
 	flag.Parse()
 
 	fmt.Println(stringNormalization(*uncleanedWords))
