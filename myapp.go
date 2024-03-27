@@ -10,15 +10,19 @@ import (
 )
 
 func cleanWord(uncleanedWord string) string {
+
 	var regex = regexp.MustCompile(`[^a-zA-Z' ]+`)
-	return regex.ReplaceAllString(uncleanedWord, "")
+	cleanedWord := regex.ReplaceAllString(uncleanedWord, " ")
+	return cleanedWord
+
 }
 
-func main() {
+func stringNormalization(notNormalizedString string) string {
 
 	var resultedWords = make(map[string]bool)
 	var resultedString string
 	var cleanString string
+
 	tags := map[string]bool{
 		"(":    false, //left round bracket
 		")":    false, //right round bracket
@@ -48,7 +52,7 @@ func main() {
 		"POS":  false, //possessive ending
 		"PRP":  false, //pronoun, personal
 		"PRP$": false, //pronoun, possessive
-		"RB":   false, //adverb
+		"RB":   true,  //adverb
 		"RBR":  false, //adverb, comparative
 		"RBS":  false, //adverb, superlative
 		"RP":   false, //adverb, particle
@@ -67,10 +71,7 @@ func main() {
 		"WRB":  false, //wh-adverb
 	}
 
-	uncleanedWords := flag.String("s", "follower follow brings bunch of questions", "string to words")
-	flag.Parse()
-
-	for _, word := range strings.Fields(*uncleanedWords) {
+	for _, word := range strings.Fields(notNormalizedString) {
 		var stemmedWord, err = snowball.Stem(cleanWord(word), "english", true)
 		if err == nil {
 			cleanString = cleanString + " " + stemmedWord
@@ -80,14 +81,24 @@ func main() {
 	doc, _ := prose.NewDocument(cleanString)
 	for _, tok := range doc.Tokens() {
 
-		if tags[tok.Tag] && !resultedWords[tok.Text] {
+		if tags[tok.Tag] && !resultedWords[tok.Text] && len(tok.Text) > 1 {
 			resultedWords[tok.Text] = true
 			resultedString += tok.Text + " "
+		}
+		if tok.Text != " " {
+			println(tok.Tag, tok.Text)
 		}
 
 	}
 
-	// return result
-	fmt.Println(resultedString)
+	return resultedString[:len(resultedString)-1]
 
+}
+
+func main() {
+
+	uncleanedWords := flag.String("s", "i you s f long sugar i'll follower follow brings bunch of questions", "string to words")
+	flag.Parse()
+
+	fmt.Println(stringNormalization(*uncleanedWords))
 }
