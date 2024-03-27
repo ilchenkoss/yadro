@@ -85,10 +85,6 @@ func stringNormalization(notNormalizedString string) string {
 			resultedWords[tok.Text] = true
 			resultedString += tok.Text + " "
 		}
-		if tok.Text != " " {
-			println(tok.Tag, tok.Text)
-		}
-
 	}
 
 	return resultedString[:len(resultedString)-1]
