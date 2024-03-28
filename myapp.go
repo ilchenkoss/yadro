@@ -9,7 +9,11 @@ import (
 	"strings"
 )
 
-func cleanWord(uncleanedWord string) string {
+var (
+	inputString string
+)
+
+func _cleanWord(uncleanedWord string) string {
 
 	var regex = regexp.MustCompile(`[^a-zA-Z' ]+`)
 	cleanedWord := regex.ReplaceAllString(uncleanedWord, " ")
@@ -17,13 +21,44 @@ func cleanWord(uncleanedWord string) string {
 
 }
 
+func _stemString(notNormalizedString string) string {
+
+	var stemmedString string
+
+	for _, word := range strings.Fields(notNormalizedString) {
+		var stemmedWord, err = snowball.Stem(_cleanWord(word), "english", true)
+		if err == nil {
+			stemmedString += " " + stemmedWord
+		}
+	}
+
+	return stemmedString
+}
+
+func _siftingString(stemString string, siftingTags map[string]bool, siftingWords map[string]bool) string {
+
+	var siftedString string
+
+	doc, _ := prose.NewDocument(stemString)
+	for _, tok := range doc.Tokens() {
+
+		if siftingTags[tok.Tag] && !siftingWords[tok.Text] && len(tok.Text) > 1 {
+			siftingWords[tok.Text] = true
+			siftedString += tok.Text + " "
+		}
+		//fmt.Println(tok.Text, tok.Tag)
+	}
+
+	if len(siftedString) < 1 {
+		return ""
+	} else {
+		return siftedString[:len(siftedString)-1]
+	}
+}
+
 func stringNormalization(notNormalizedString string) string {
 
-	var resultedWords = make(map[string]bool)
-	var resultedString string
-	var cleanString string
-
-	tags := map[string]bool{
+	siftingTags := map[string]bool{
 		"(":    false, //left round bracket
 		")":    false, //right round bracket
 		",":    false, //comma
@@ -71,35 +106,21 @@ func stringNormalization(notNormalizedString string) string {
 		"WRB":  false, //wh-adverb
 	}
 
-	for _, word := range strings.Fields(notNormalizedString) {
-		var stemmedWord, err = snowball.Stem(cleanWord(word), "english", true)
-		if err == nil {
-			cleanString += " " + stemmedWord
-		}
+	siftingWords := map[string]bool{
+		"be": true,
 	}
 
-	doc, _ := prose.NewDocument(cleanString)
-	for _, tok := range doc.Tokens() {
+	normalizedString := _stemString(notNormalizedString)
+	siftedString := _siftingString(normalizedString, siftingTags, siftingWords)
 
-		if tags[tok.Tag] && !resultedWords[tok.Text] && len(tok.Text) > 1 {
-			resultedWords[tok.Text] = true
-			resultedString += tok.Text + " "
-		}
-		//fmt.Println(tok.Text, tok.Tag)
-	}
+	return siftedString
+}
 
-	if len(resultedString) < 1 {
-		return ""
-	} else {
-		return resultedString[:len(resultedString)-1]
-	}
-
+func init() {
+	flag.StringVar(&inputString, "s", "good a with you need to will be have", "string to words")
 }
 
 func main() {
-
-	uncleanedWords := flag.String("s", "good", "string to words")
 	flag.Parse()
-
-	fmt.Println(stringNormalization(*uncleanedWords))
+	fmt.Println(stringNormalization(inputString))
 }
