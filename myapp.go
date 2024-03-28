@@ -94,11 +94,11 @@ func stringNormalization(notNormalizedString string) string {
 		"TO":   false, //infinitival to
 		"UH":   false, //interjection
 		"VB":   true,  //verb, base form
-		"VBD":  true,  //verb, past tense
-		"VBG":  true,  //verb, gerund or present participle
-		"VBN":  true,  //verb, past participle
+		"VBD":  false, //verb, past tense
+		"VBG":  false, //verb, gerund or present participle
+		"VBN":  false, //verb, past participle
 		"VBP":  false, //verb, non-3rd person singular present
-		"VBZ":  true,  //verb, 3rd person singular present
+		"VBZ":  false, //verb, 3rd person singular present
 		"WDT":  false, //wh-determiner
 		"WP":   false, //wh-pronoun, personal
 		"WP$":  false, //wh-pronoun, possessive

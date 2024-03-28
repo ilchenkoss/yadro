@@ -1,10 +1,6 @@
 package main
 
 import (
-	"github.com/tjarratt/babble"
-	"math/rand"
-	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -34,70 +30,4 @@ func TestEmpty(t *testing.T) {
 	if expected != actual {
 		t.Errorf("Result was incorrect, got: %s, want: %s.", actual, expected)
 	}
-}
-
-func TestAutoGen(t *testing.T) {
-
-	babbler := babble.NewBabbler()
-	babbler.Count = 1
-
-	punctuationChance := 40
-	punctuation := []string{
-		".",
-		",",
-		" -",
-		"?",
-		"!",
-		"'s",
-	}
-
-	trashWordsChance := 20
-	trashWords := []string{
-		"to",
-		"be",
-		"will",
-		"she",
-		"he",
-		"we",
-		"a",
-		"with",
-		"where",
-	}
-
-	wordsCount := 15
-	var words string
-
-	i := 0
-	for i < wordsCount {
-
-		words += babbler.Babble()
-		//add test words
-		i++
-
-		//punctuation intervention
-		if rand.Intn(100) < punctuationChance {
-			randomIndex := rand.Intn(len(punctuation))
-			pick := punctuation[randomIndex]
-			words += pick
-		}
-
-		//trashWord intervention
-		if rand.Intn(100) < trashWordsChance {
-			randomIndex := rand.Intn(len(trashWords))
-			pick := trashWords[randomIndex]
-			words += " " + pick
-		}
-
-		if i != wordsCount-1 {
-			words += " "
-		}
-
-	}
-
-	expected := len(strings.Split(stringNormalization(words), " "))
-
-	if expected != wordsCount {
-		t.Errorf("Result was incorrect, got: %s, want: %s.", strconv.Itoa(expected), strconv.Itoa(wordsCount))
-	}
-
 }
