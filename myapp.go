@@ -46,7 +46,6 @@ func _siftingString(stemString string, siftingTags map[string]bool, siftingWords
 			siftingWords[tok.Text] = true
 			siftedString += tok.Text + " "
 		}
-		//fmt.Println(tok.Text, tok.Tag)
 	}
 
 	if len(siftedString) < 1 {
@@ -95,11 +94,11 @@ func stringNormalization(notNormalizedString string) string {
 		"TO":   false, //infinitival to
 		"UH":   false, //interjection
 		"VB":   true,  //verb, base form
-		"VBD":  false, //verb, past tense
-		"VBG":  false, //verb, gerund or present participle
-		"VBN":  false, //verb, past participle
+		"VBD":  true,  //verb, past tense
+		"VBG":  true,  //verb, gerund or present participle
+		"VBN":  true,  //verb, past participle
 		"VBP":  false, //verb, non-3rd person singular present
-		"VBZ":  false, //verb, 3rd person singular present
+		"VBZ":  true,  //verb, 3rd person singular present
 		"WDT":  false, //wh-determiner
 		"WP":   false, //wh-pronoun, personal
 		"WP$":  false, //wh-pronoun, possessive
@@ -116,11 +115,8 @@ func stringNormalization(notNormalizedString string) string {
 	return siftedString
 }
 
-func init() {
-	flag.StringVar(&inputString, "s", "good a with you need to will be have", "string to words")
-}
-
 func main() {
+	flag.StringVar(&inputString, "s", "good of the she he i'am i a too with you need to will be have", "string to normalize")
 	flag.Parse()
 	fmt.Println(stringNormalization(inputString))
 }
