@@ -14,6 +14,7 @@ var (
 )
 
 func cleanWord(uncleanedWord string) string {
+	//clearing a word from non-word characters
 
 	var regex = regexp.MustCompile(`[^a-zA-Z' ]+`)
 	cleanedWord := regex.ReplaceAllString(uncleanedWord, " ")
@@ -60,14 +61,23 @@ func siftingString(stemString string) string {
 
 func stringNormalization(notNormalizedString string) string {
 
+	//stemmed input words in string
 	normalizedString := stemString(notNormalizedString)
+
+	//sifting string from garbage
 	siftedString := siftingString(normalizedString)
 
 	return siftedString
 }
 
 func main() {
+
+	//приложение, которое нормализует перечисленные в виде аргументов слова (на английском).
+	//Приложение должно отсеивать часто употребляемые слова
+	//типа of/a/the/, местоимения и глагольные частицы (will)
+
 	flag.StringVar(&inputString, "s", "string to normalize", "string to normalize")
 	flag.Parse()
+
 	fmt.Println(stringNormalization(inputString))
 }
