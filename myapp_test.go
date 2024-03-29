@@ -5,7 +5,7 @@ import (
 )
 
 func TestExample1(t *testing.T) {
-	notNormalizedString := "follower brings bunch of questions"
+	notNormalizedString := "follower brings bunch of questions!"
 	expected := "follow bring bunch question"
 	actual := stringNormalization(notNormalizedString)
 

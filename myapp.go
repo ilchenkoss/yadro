@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
-	"github.com/jdkato/prose/v2"
 	"github.com/kljensen/snowball"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -17,57 +18,79 @@ func cleanWord(uncleanedWord string) string {
 	//clearing a word from non-word characters
 
 	var regex = regexp.MustCompile(`[^a-zA-Z' ]+`)
+
 	cleanedWord := regex.ReplaceAllString(uncleanedWord, " ")
+
 	return cleanedWord
 
 }
 
-func stemString(notNormalizedString string) string {
+func stemming(notNormalizedString string) []string {
 
-	var stemmedString string
+	var stemmedWords []string
 
 	for _, word := range strings.Fields(notNormalizedString) {
 		var stemmedWord, err = snowball.Stem(cleanWord(word), "english", true)
 		if err == nil {
-			stemmedString += " " + stemmedWord
+			stemmedWords = append(stemmedWords, stemmedWord)
 		}
 	}
 
-	return stemmedString
+	return stemmedWords
 }
 
-func siftingString(stemString string) string {
+func loadStopWords() map[string]bool {
 
-	var siftedString string
+	stopWords := make(map[string]bool)
 
-	duplicateWords := map[string]bool{}
+	file, err := os.Open("wordsToRemove.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
 
-	doc, _ := prose.NewDocument(stemString)
-	for _, tok := range doc.Tokens() {
+	scanner := bufio.NewScanner(file)
 
-		//siftingTags and siftingWords in config.go
-		if siftingTags[tok.Tag] && !siftingWords[tok.Text] && !duplicateWords[tok.Text] && len(tok.Text) > 1 {
-			duplicateWords[tok.Text] = true
-			siftedString += tok.Text + " "
+	for scanner.Scan() {
+
+		line := scanner.Text()
+		word := strings.TrimSpace(line)
+
+		if word != "" {
+			stopWords[strings.ToLower(word)] = true
 		}
 	}
 
-	if len(siftedString) > 1 && siftedString[len(siftedString)-1:] == " " {
-		return siftedString[:len(siftedString)-1]
-	} else {
-		return siftedString
-	}
+	return stopWords
 }
 
-func stringNormalization(notNormalizedString string) string {
+func sifting(stemmedWords []string, stopWords map[string]bool) string {
+
+	duplicateContainer := make(map[string]bool)
+	var output string
+
+	for _, word := range stemmedWords {
+
+		if !duplicateContainer[word] && !stopWords[word] && len(word) > 1 {
+			duplicateContainer[word] = true
+			output += strings.ToLower(word) + " "
+		}
+	}
+
+	return strings.TrimSpace(output)
+
+}
+
+func stringNormalization(inputString string) string {
 
 	//stemmed input words in string
-	normalizedString := stemString(notNormalizedString)
-
+	stemmedWords := stemming(inputString)
+	//load stop words
+	stopWords := loadStopWords()
 	//sifting string from garbage
-	siftedString := siftingString(normalizedString)
+	outputString := sifting(stemmedWords, stopWords)
 
-	return siftedString
+	return outputString
 }
 
 func main() {
@@ -79,5 +102,10 @@ func main() {
 	flag.StringVar(&inputString, "s", "string to normalize", "string to normalize")
 	flag.Parse()
 
+	//processing the separation words without a space
+	replacer := strings.NewReplacer(",", " ", ".", " ", "?", " ", "!", " ")
+	inputString = replacer.Replace(inputString)
+
+	//result
 	fmt.Println(stringNormalization(inputString))
 }

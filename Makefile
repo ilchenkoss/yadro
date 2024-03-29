@@ -1,5 +1,5 @@
 build:
-	go build -o myapp myapp.go config.go
+	go build -o myapp myapp.go
 
 run:
-	go run myapp.go config.go
+	go run myapp.go
