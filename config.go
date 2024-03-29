@@ -15,34 +15,34 @@ var (
 		"CD":   false, //cardinal number
 		"DT":   false, //determiner
 		"EX":   false, //existential there
-		"FW":   false, //foreign word
+		"FW":   true,  //foreign word
 		"IN":   false, //conjunction, subordinating or preposition
 		"JJ":   true,  //adjective
-		"JJR":  false, //adjective, comparative
-		"JJS":  false, //adjective, superlative
-		"LS":   false, //list item marker
+		"JJR":  true,  //adjective, comparative
+		"JJS":  true,  //adjective, superlative
+		"LS":   true,  //list item marker
 		"MD":   false, //verb, modal auxiliary
 		"NN":   true,  //noun, singular or mass
-		"NNP":  false, //noun, proper singular
-		"NNPS": false, //noun, proper plural
-		"NNS":  false, //noun, plural
+		"NNP":  true,  //noun, proper singular
+		"NNPS": true,  //noun, proper plural
+		"NNS":  true,  //noun, plural
 		"PDT":  false, //predeterminer
 		"POS":  false, //possessive ending
 		"PRP":  false, //pronoun, personal
 		"PRP$": false, //pronoun, possessive
 		"RB":   true,  //adverb
-		"RBR":  false, //adverb, comparative
-		"RBS":  false, //adverb, superlative
-		"RP":   false, //adverb, particle
+		"RBR":  true,  //adverb, comparative
+		"RBS":  true,  //adverb, superlative
+		"RP":   true,  //adverb, particle
 		"SYM":  false, //symbol
 		"TO":   false, //infinitival to
 		"UH":   false, //interjection
 		"VB":   true,  //verb, base form
-		"VBD":  false, //verb, past tense
-		"VBG":  false, //verb, gerund or present participle
-		"VBN":  false, //verb, past participle
-		"VBP":  false, //verb, non-3rd person singular present
-		"VBZ":  false, //verb, 3rd person singular present
+		"VBD":  true,  //verb, past tense
+		"VBG":  true,  //verb, gerund or present participle
+		"VBN":  true,  //verb, past participle
+		"VBP":  true,  //verb, non-3rd person singular present
+		"VBZ":  true,  //verb, 3rd person singular present
 		"WDT":  false, //wh-determiner
 		"WP":   false, //wh-pronoun, personal
 		"WP$":  false, //wh-pronoun, possessive
@@ -50,6 +50,22 @@ var (
 	}
 
 	siftingWords = map[string]bool{
-		"be": true,
+		"be":    true,
+		"are":   true,
+		"am":    true,
+		"is":    true,
+		"was":   true,
+		"were":  true,
+		"being": true,
+		"can":   true,
+		"could": true,
+		"do":    true,
+		"did":   true,
+		"does":  true,
+		"doing": true,
+		"had":   true,
+		"has":   true,
+		"may":   true,
+		"will":  true,
 	}
 )
