@@ -60,33 +60,33 @@ func loadStopWords() map[string]bool {
 	return stopWords
 }
 
-func sifting(stemmedWords []string, stopWords map[string]bool) string {
+func sifting(stemmedWords []string, stopWords map[string]bool) []string {
 
 	duplicateContainer := make(map[string]bool)
-	var output string
+	var keywords []string
 
 	for _, word := range stemmedWords {
 
 		if !duplicateContainer[word] && !stopWords[word] && len(word) > 1 {
 			duplicateContainer[word] = true
-			output += strings.ToLower(word) + " "
+			keywords = append(keywords, word)
 		}
 	}
 
-	return strings.TrimSpace(output)
+	return keywords
 
 }
 
-func stringNormalization(inputString string) string {
+func stringNormalization(inputString string) []string {
 
 	//stemmed input words in string
 	stemmedWords := stemming(inputString)
 	//load stop words
 	stopWords := loadStopWords()
 	//sifting string from garbage
-	outputString := sifting(stemmedWords, stopWords)
+	keywords := sifting(stemmedWords, stopWords)
 
-	return outputString
+	return keywords
 }
 
 func main() {
@@ -104,5 +104,9 @@ func main() {
 	inputString = replacer.Replace(inputString)
 
 	//result
-	fmt.Println(stringNormalization(inputString))
+	keywords := stringNormalization(inputString)
+
+	//print
+	outputString := strings.Join(keywords, " ")
+	fmt.Println(outputString)
 }
