@@ -13,21 +13,25 @@ import (
 func cleanWord(uncleanedWord string) string {
 	//clearing a word from non-word characters
 
-	var regex = regexp.MustCompile(`[^a-zA-Z' ]+`)
+	var regex = regexp.MustCompile(`[^a-zA-Z']+`)
 
-	cleanedWord := regex.ReplaceAllString(uncleanedWord, " ")
+	cleanedWord := regex.ReplaceAllString(uncleanedWord, "")
 
 	return cleanedWord
 
 }
 
-func stemming(notNormalizedString string) []string {
+func stemming(notNormalizedString []string) []string {
 
+	duplicateContainer := make(map[string]bool)
 	var stemmedWords []string
 
-	for _, word := range strings.Fields(notNormalizedString) {
-		var stemmedWord, err = snowball.Stem(cleanWord(word), "english", true)
-		if err == nil {
+	for _, word := range notNormalizedString {
+		var stemmedWord, err = snowball.Stem(word, "english", true)
+
+		//uniqueness
+		if err == nil && !duplicateContainer[stemmedWord] {
+			duplicateContainer[stemmedWord] = true
 			stemmedWords = append(stemmedWords, stemmedWord)
 		}
 	}
@@ -60,15 +64,15 @@ func loadStopWords() map[string]bool {
 	return stopWords
 }
 
-func sifting(stemmedWords []string, stopWords map[string]bool) []string {
+func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
-	duplicateContainer := make(map[string]bool)
 	var keywords []string
 
-	for _, word := range stemmedWords {
+	for _, word := range sliceWords {
 
-		if !duplicateContainer[word] && !stopWords[word] && len(word) > 1 {
-			duplicateContainer[word] = true
+		word = strings.ToLower(cleanWord(word))
+
+		if !stopWords[word] && len(word) > 1 {
 			keywords = append(keywords, word)
 		}
 	}
@@ -79,14 +83,16 @@ func sifting(stemmedWords []string, stopWords map[string]bool) []string {
 
 func stringNormalization(inputString string) []string {
 
-	//stemmed input words in string
-	stemmedWords := stemming(inputString)
+	//parse string
+	stringFields := strings.Fields(inputString)
 	//load stop words
 	stopWords := loadStopWords()
-	//sifting string from garbage
-	keywords := sifting(stemmedWords, stopWords)
+	//sifting words from garbage
+	siftingWords := sifting(stringFields, stopWords)
+	//stemmed input words in string and uniqueness
+	stemmedWords := stemming(siftingWords)
 
-	return keywords
+	return stemmedWords
 }
 
 func main() {
@@ -94,17 +100,11 @@ func main() {
 	//приложение, которое нормализует перечисленные в виде аргументов слова (на английском).
 	//Приложение должно отсеивать часто употребляемые слова
 	//типа of/a/the/, местоимения и глагольные частицы (will)
-	var inputString string
 
-	flag.StringVar(&inputString, "s", "string to normalize", "string to normalize")
+	inputString := flag.String("s", "string to normalize", "string to normalize")
 	flag.Parse()
 
-	//processing the separation words without a space
-	replacer := strings.NewReplacer(",", " ", ".", " ", "?", " ", "!", " ")
-	inputString = replacer.Replace(inputString)
-
-	//result
-	keywords := stringNormalization(inputString)
+	keywords := stringNormalization(*inputString)
 
 	//print
 	outputString := strings.Join(keywords, " ")
