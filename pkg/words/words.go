@@ -1,4 +1,4 @@
-package main
+package words
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func cleanWord(uncleanedWord string) string {
+func CleanWord(uncleanedWord string) string {
 	//clearing a word from non-word characters
 
 	var regex = regexp.MustCompile(`[^a-zA-Z']+`)
@@ -70,7 +70,7 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
 	for _, word := range sliceWords {
 
-		word = strings.ToLower(cleanWord(word))
+		word = strings.ToLower(CleanWord(word))
 
 		if !stopWords[word] && len(word) > 1 {
 			keywords = append(keywords, word)
