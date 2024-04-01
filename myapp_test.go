@@ -96,7 +96,7 @@ func TestDuplicate(t *testing.T) {
 
 func TestSifting(t *testing.T) {
 
-	tests := 100
+	tests := 10000
 
 	//words to generate
 	keyWordsCount := 30
@@ -112,7 +112,7 @@ func TestSifting(t *testing.T) {
 
 	for i := 0; i < tests; i++ {
 
-		generatedWords := generateUniqueWords(keyWordsCount, trashWords)
+		generatedWords := generateWords(keyWordsCount, trashWords, 0)
 		resultSlice := append([]string(nil), generatedWords...)
 
 		trashWordsCount := (keyWordsCount * trashWordsChance) / 100
@@ -139,8 +139,9 @@ func TestSifting(t *testing.T) {
 
 func TestSynth(t *testing.T) {
 
-	var tests = 10000
-	wordsCount := 15
+	var tests = 1000
+	uniqueWords := 15
+	duplicates := 3
 
 	punctuationChance := 40
 	punctuation := []string{
@@ -165,7 +166,7 @@ func TestSynth(t *testing.T) {
 		//buffer for synth string
 		var synthStringBuffer bytes.Buffer
 
-		generatedWords := generateUniqueWords(wordsCount, trashWords)
+		generatedWords := generateWords(uniqueWords, trashWords, duplicates)
 
 		for index, word := range generatedWords {
 
@@ -191,7 +192,7 @@ func TestSynth(t *testing.T) {
 				synthStringBuffer.WriteString(" " + pick)
 			}
 
-			if index != wordsCount-1 {
+			if index != len(generatedWords)-1 {
 				synthStringBuffer.WriteString(" ")
 			}
 		}
@@ -199,7 +200,7 @@ func TestSynth(t *testing.T) {
 		finalString := synthStringBuffer.String()
 		actual := stringNormalization(finalString)
 
-		if len(generatedWords) != len(actual) {
+		if uniqueWords != len(actual) {
 
 			_, errDetails := comparisonSlices(actual, generatedWords)
 
@@ -208,18 +209,20 @@ func TestSynth(t *testing.T) {
 	}
 }
 
-func generateUniqueWords(uniqueWordsCount int, trashWords map[string]bool) []string {
+func generateWords(uniqueWords int, trashWords map[string]bool, duplicates int) []string {
+
+	wordsCount := uniqueWords + duplicates
 
 	//duplicate stemmed words
 	duplicateContainer := make(map[string]bool)
 
-	generatedWords := make([]string, uniqueWordsCount)
+	generatedWords := make([]string, wordsCount)
 
 	//word generator
 	babbler := babble.NewBabbler()
 	babbler.Count = 1
 
-	for i := 0; i < uniqueWordsCount; i++ {
+	for i := 0; i < uniqueWords; i++ {
 
 		var successGen bool
 
@@ -233,6 +236,20 @@ func generateUniqueWords(uniqueWordsCount int, trashWords map[string]bool) []str
 		duplicateContainer[stemmedWord] = true
 	}
 
+	//add duplicates
+	if duplicates > 0 {
+
+		var duplicateKeys []string
+
+		for key, _ := range duplicateContainer {
+			duplicateKeys = append(duplicateKeys, key)
+		}
+
+		for i := uniqueWords; i < wordsCount; i++ {
+			word := generatedWords[rand.Intn(uniqueWords-1)]
+			generatedWords[i] = word
+		}
+	}
 	return generatedWords
 }
 
