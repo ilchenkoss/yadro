@@ -1,9 +1,9 @@
-build:
+build: deps
 	@go build -o xkcd ./cmd/xkcd
-deps:
-	@go get ./pkg/xkcd
-	@go get ./pkg/database
-	@go get ./pkg/words
-test:
+
+test: deps
 	@echo "Running Tests"
 	@go test -v ./...
+
+deps:
+	@go get ./...
