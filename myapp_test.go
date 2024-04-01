@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/kljensen/snowball"
 	"github.com/tjarratt/babble"
 	"math/rand"
 	"reflect"
@@ -138,7 +139,7 @@ func TestSifting(t *testing.T) {
 
 func TestSynth(t *testing.T) {
 
-	var tests = 10
+	var tests = 10000
 	wordsCount := 15
 
 	punctuationChance := 40
@@ -209,7 +210,9 @@ func TestSynth(t *testing.T) {
 
 func generateUniqueWords(uniqueWordsCount int, trashWords map[string]bool) []string {
 
+	//duplicate stemmed words
 	duplicateContainer := make(map[string]bool)
+
 	generatedWords := make([]string, uniqueWordsCount)
 
 	//word generator
@@ -220,27 +223,37 @@ func generateUniqueWords(uniqueWordsCount int, trashWords map[string]bool) []str
 
 		var successGen bool
 
-		successGen, word := generateUniqueWord(duplicateContainer, trashWords, 5, babbler)
+		successGen, word, stemmedWord := generateUniqueWord(duplicateContainer, trashWords, 5, babbler)
 
 		if !successGen {
 			word = "word"
 		}
 
 		generatedWords[i] = word
-		duplicateContainer[word] = true
+		duplicateContainer[stemmedWord] = true
 	}
 
 	return generatedWords
 }
 
-func generateUniqueWord(duplicateContainer map[string]bool, trashWords map[string]bool, retry int, babbler babble.Babbler) (bool, string) {
+func generateUniqueWord(duplicateContainer map[string]bool, trashWords map[string]bool, retry int, babbler babble.Babbler) (bool, string, string) {
 
 	word := babbler.Babble()
 	word = strings.ToLower(word)
 
-	if trashWords[word] || len(word) <= 2 || duplicateContainer[word] {
+	//uniqueness
+	stemmedWord, err := snowball.Stem(word, "english", true)
+	if err == nil {
+
+		if trashWords[word] || len(word) <= 2 || duplicateContainer[stemmedWord] {
+			return generateUniqueWord(duplicateContainer, trashWords, retry-1, babbler)
+		}
+
+		return true, word, stemmedWord
+
+	} else {
+		//if stem error
 		return generateUniqueWord(duplicateContainer, trashWords, retry-1, babbler)
 	}
 
-	return true, word
 }
