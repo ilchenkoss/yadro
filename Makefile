@@ -1,5 +1,5 @@
 build:
-	@go build -o myapp .
+	@go build -o xkcd .
 test:
 	@echo "Running Tests"
 	@go test
