@@ -54,7 +54,7 @@ func TestExample1(t *testing.T) {
 
 	notNormalizedString := "follower brings bunch of questions!"
 	expected := []string{"follow", "bunch", "bring", "question"}
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
@@ -65,7 +65,7 @@ func TestExample2(t *testing.T) {
 
 	notNormalizedString := "i'll follow you as long as you are following me"
 	expected := []string{"follow", "long"}
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
@@ -76,7 +76,7 @@ func TestEmpty(t *testing.T) {
 
 	notNormalizedString := ""
 	var expected []string
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n want: %s, \n got: %s.", errDetails["actual"], errDetails["expected"])
@@ -87,7 +87,7 @@ func TestDuplicate(t *testing.T) {
 
 	notNormalizedString := "follow following, follower with followers"
 	expected := []string{"follow"}
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
@@ -198,7 +198,7 @@ func TestSynth(t *testing.T) {
 		}
 
 		finalString := synthStringBuffer.String()
-		actual := stringNormalization(finalString)
+		actual := StringNormalization(finalString)
 
 		if uniqueWords != len(actual) {
 

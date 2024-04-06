@@ -32,6 +32,7 @@ by
 can
 could
 did
+don't
 do
 does
 doing
@@ -93,6 +94,7 @@ nor
 not
 no
 of
+off
 oh
 on
 once

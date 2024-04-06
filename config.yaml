@@ -1,5 +1,6 @@
 scrape:
   source_url: "https://xkcd.com/"
-  scrape_pages_limit: 10 # 0 -> all pages
+  scrape_pages_limit: 10   # -1 -> all pages
 database:
+  db_path : "./pkg/database/"
   db_file : "database.json"

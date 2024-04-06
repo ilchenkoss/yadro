@@ -2,8 +2,6 @@ package words
 
 import (
 	"bufio"
-	"flag"
-	"fmt"
 	"github.com/kljensen/snowball"
 	"os"
 	"regexp"
@@ -43,7 +41,7 @@ func loadStopWords() map[string]bool {
 
 	stopWords := make(map[string]bool)
 
-	file, err := os.Open("wordsToRemove.txt")
+	file, err := os.Open("./pkg/words/wordsToRemove.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +70,7 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
 		word = strings.ToLower(CleanWord(word))
 
-		if !stopWords[word] && len(word) > 1 {
+		if !stopWords[word] && len(word) > 2 {
 			keywords = append(keywords, word)
 		}
 	}
@@ -81,7 +79,7 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
 }
 
-func stringNormalization(inputString string) []string {
+func StringNormalization(inputString string) []string {
 
 	//parse string
 	stringFields := strings.Fields(inputString)
@@ -93,20 +91,4 @@ func stringNormalization(inputString string) []string {
 	stemmedWords := stemming(siftingWords)
 
 	return stemmedWords
-}
-
-func main() {
-
-	//приложение, которое нормализует перечисленные в виде аргументов слова (на английском).
-	//Приложение должно отсеивать часто употребляемые слова
-	//типа of/a/the/, местоимения и глагольные частицы (will)
-
-	inputString := flag.String("s", "string to normalize", "string to normalize")
-	flag.Parse()
-
-	keywords := stringNormalization(*inputString)
-
-	//print
-	outputString := strings.Join(keywords, " ")
-	fmt.Println(outputString)
 }
