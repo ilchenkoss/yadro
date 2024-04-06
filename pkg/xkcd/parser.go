@@ -2,20 +2,22 @@ package xkcd
 
 import (
 	"encoding/json"
+	"fmt"
 	"myapp/pkg/database"
 	"myapp/pkg/words"
 )
 
-type responseData struct {
+type ResponseData struct {
 	Alt string `json:"alt"`
 	Img string `json:"img"`
 }
 
-func decodeResponse(data []byte) (responseData, error) {
+func decodeResponse(data []byte) (ResponseData, error) {
 
-	var result responseData
+	fmt.Println(string(data))
+	var result ResponseData
 	if err := json.Unmarshal(data, &result); err != nil {
-		return responseData{}, err
+		return ResponseData{}, err
 	}
 	return result, nil
 }

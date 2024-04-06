@@ -3,6 +3,7 @@ package xkcd
 import (
 	"fmt"
 	"myapp/pkg/database"
+	"os"
 	"sort"
 )
 
@@ -12,10 +13,8 @@ type OutputStruct struct {
 	ScrapeLimit  int
 }
 
-func prepToPrint(scrapedData database.ScrapeResult, outputLimit int) {
-	//print result
+func printLimitedData(scrapedData database.ScrapeResult, outputLimit int) {
 
-	//preparing to print
 	keys := make([]int, 0, len(scrapedData.Data))
 	toPrint := map[int]database.ParsedData{}
 
@@ -35,38 +34,27 @@ func prepToPrint(scrapedData database.ScrapeResult, outputLimit int) {
 	fmt.Println(database.DataToPrint(toPrint))
 }
 
-func findLastID(data map[int]database.ParsedData) int {
-	if len(data) == 0 {
-		return 1
-	}
-	var maxID int
-
-	for key := range data {
-		if key > maxID {
-			maxID = key
-		}
-	}
-	return maxID
-}
 func Output(args OutputStruct) {
 
-	scrapedData, err := database.ReadDatabase(args.DatabasePath)
+	scrapedData := Scrape(args.DatabasePath, args.ScrapeLimit)
+
+	//write last data
+	err := database.WriteData(args.DatabasePath, scrapedData)
+
 	if err != nil {
-		fmt.Println("err")
-	}
 
-	//retry for badIDs
-	if len(scrapedData.BadIDs) != 0 {
-		for ID := range scrapedData.BadIDs {
-			scrapedData = MainScrape(scrapedData.Data, scrapedData.BadIDs, 1, ID)
+		errSave2 := database.WriteData("temp_db.json", scrapedData)
+		if errSave2 != nil {
+			fmt.Println("can't save Data")
+		} else {
+			pwd, _ := os.Getwd()
+			fmt.Printf("data saved to %s%s", pwd, "temp_db.json")
 		}
-	}
 
-	scrapedData = MainScrape(scrapedData.Data, scrapedData.BadIDs, args.ScrapeLimit, findLastID(scrapedData.Data))
-	database.WriteData(args.DatabasePath, scrapedData)
+	}
 
 	if args.OutputLimit > 0 {
-		prepToPrint(scrapedData, args.OutputLimit)
+		printLimitedData(scrapedData, args.OutputLimit)
 	}
 
 }

@@ -7,7 +7,17 @@ import (
 	"time"
 )
 
-func ReadDatabase(dbpath string) (ScrapeResult, error) {
+type ParsedData struct {
+	Keywords []string `json:"keywords"`
+	Url      string   `json:"url"`
+}
+type ScrapeResult struct {
+	Data      map[int]ParsedData `json:"data"`
+	BadIDs    map[int]int        `json:"badIDs"`
+	Timestamp time.Time          `json:"timestamp"`
+}
+
+func ReadDatabase(dbpath string) ScrapeResult {
 
 	dataBytes, databaseErr := readBytesFromFile(dbpath) //data
 
@@ -20,12 +30,13 @@ func ReadDatabase(dbpath string) (ScrapeResult, error) {
 
 		} else { //decode good
 
-			return dbData, nil
+			return dbData
 		}
+
 	} else { //error reading database
 
 		if os.IsNotExist(databaseErr) { //if database not exists
-			return ScrapeResult{}, nil
+			return ScrapeResult{}
 		} else {
 			panic(databaseErr) //read error and file exists
 		}
@@ -39,16 +50,6 @@ func DataToPrint(data map[int]ParsedData) string {
 		fmt.Println("Ошибка при форматировании JSON:", err)
 	}
 	return string(bytes)
-}
-
-type ParsedData struct {
-	Keywords []string `json:"keywords"`
-	Url      string   `json:"url"`
-}
-type ScrapeResult struct {
-	Data      map[int]ParsedData `json:"data"`
-	BadIDs    map[int]int        `json:"badIDs"`
-	Timestamp time.Time          `json:"timestamp"`
 }
 
 func readBytesFromFile(filePath string) ([]byte, error) {
