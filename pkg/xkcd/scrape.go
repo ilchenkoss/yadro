@@ -1,7 +1,6 @@
 package xkcd
 
 import (
-	"fmt"
 	"io"
 	"myapp/pkg/database"
 	"net/http"
@@ -58,7 +57,6 @@ func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) data
 	client := http.Client{Timeout: time.Duration(1) * time.Second} //scrape client
 
 	for Condition && scrapeLimit != 0 {
-		fmt.Println(scrapeLimit)
 		var data []byte
 		//if bad requests in db, retry to scrape
 		if len(dbData.BadIDs) != 0 {
@@ -102,7 +100,6 @@ func secondScrape(client http.Client, ID int, badIDs map[int]int, retries int) (
 
 	//request
 	resp, err := client.Get(url)
-	fmt.Println(resp)
 
 	if err != nil {
 
@@ -110,7 +107,6 @@ func secondScrape(client http.Client, ID int, badIDs map[int]int, retries int) (
 		return secondScrape(client, ID, badIDs, retries-1)
 		//return nil, badIDs
 	}
-	fmt.Println("here2")
 
 	defer resp.Body.Close()
 

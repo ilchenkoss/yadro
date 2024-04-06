@@ -2,7 +2,6 @@ package xkcd
 
 import (
 	"encoding/json"
-	"fmt"
 	"myapp/pkg/database"
 	"myapp/pkg/words"
 )
@@ -14,7 +13,6 @@ type ResponseData struct {
 
 func decodeResponse(data []byte) (ResponseData, error) {
 
-	fmt.Println(string(data))
 	var result ResponseData
 	if err := json.Unmarshal(data, &result); err != nil {
 		return ResponseData{}, err
