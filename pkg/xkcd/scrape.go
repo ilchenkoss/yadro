@@ -23,7 +23,7 @@ func MainScrape(scrapedData map[int]database.ParsedData, badIDs map[int]int, scr
 
 		parsedData, parserErr := responseParser(data)
 
-		if parserErr && Condition == true {
+		if parserErr != nil && Condition == true {
 			badIDs[startID] = 1337 //parser error
 		} else if Condition == true {
 			scrapedData[startID] = parsedData //append data
@@ -50,7 +50,7 @@ func secondScrape(client http.Client, ID int, badIDs map[int]int, retries int) (
 		resp, err := client.Get(url)
 
 		if err != nil {
-			//error from reading
+
 			badIDs[ID] = 0 //error code
 
 			return nil, badIDs

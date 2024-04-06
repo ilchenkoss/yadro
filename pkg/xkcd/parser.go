@@ -11,22 +11,20 @@ type responseData struct {
 	Img string `json:"img"`
 }
 
-func decodeResponse(data []byte) (responseData, bool) {
+func decodeResponse(data []byte) (responseData, error) {
 
 	var result responseData
 	if err := json.Unmarshal(data, &result); err != nil {
-		return responseData{}, true
+		return responseData{}, err
 	}
-	return result, false
+	return result, nil
 }
 
-func responseParser(data []byte) (database.ParsedData, bool) {
+func responseParser(data []byte) (database.ParsedData, error) {
 
 	result := database.ParsedData{}
-	err := false
-	jsonData := responseData{}
 
-	jsonData, err = decodeResponse(data)
+	jsonData, err := decodeResponse(data)
 	result.Keywords = words.StringNormalization(jsonData.Alt)
 	result.Url = jsonData.Img
 
