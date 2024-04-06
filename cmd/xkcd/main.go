@@ -40,8 +40,7 @@ func loadConfig() (Config, error) {
 	return config, nil
 }
 
-func main() {
-
+func addInterruptHandling() {
 	sign := make(chan os.Signal, 1)
 
 	//select incoming signals
@@ -63,6 +62,11 @@ func main() {
 			}
 		}()
 	}()
+}
+
+func main() {
+
+	addInterruptHandling()
 
 	// load config
 	config, err := loadConfig()
