@@ -3,7 +3,6 @@ package xkcd
 import (
 	"fmt"
 	"myapp/pkg/database"
-	"os"
 	"sort"
 )
 
@@ -13,78 +12,32 @@ type OutputStruct struct {
 	ScrapeLimit  int
 }
 
-func Output(args OutputStruct) {
+func prepToPrint(scrapedData database.ScrapeResult, outputLimit int) {
+	//print result
 
-	var startID int
-	var scrapedData database.ScrapeResult
-	parsedData := map[int]database.ParsedData{} //result of scrape
-	badIDs := map[int]int{}                     //container with bad response and errors from scrape
+	//preparing to print
+	keys := make([]int, 0, len(scrapedData.Data))
+	toPrint := map[int]database.ParsedData{}
 
-	dataBytes, databaseErr := database.ReadData(args.DatabasePath) //data
-
-	if databaseErr == nil { //db read ok
-
-		dbData, decodeErr := database.DecodeData(dataBytes) //try decode
-
-		if decodeErr != nil { //decode err
-			panic(decodeErr)
-
-		} else { //decode good
-
-			parsedData = dbData.Data
-			badIDs = dbData.BadIDs
-
-			//start from last + 1
-			startID = findLastID(dbData.Data) + 1
-		}
-
-	} else { //error reading database
-
-		if os.IsNotExist(databaseErr) { //if database not exists
-			startID = 1
-		} else {
-			panic(databaseErr) //read error and file exists
-		}
+	for k := range scrapedData.Data {
+		keys = append(keys, k)
 	}
 
-	//retry for badIDs
-	if len(badIDs) != 0 {
-		for ID := range badIDs {
-			scrapedData = MainScrape(parsedData, badIDs, 1, ID)
-		}
+	sort.Ints(keys)
+
+	if len(keys) > outputLimit {
+		keys = keys[:outputLimit]
 	}
 
-	scrapedData = MainScrape(parsedData, badIDs, args.ScrapeLimit, startID)
-	database.WriteData(args.DatabasePath, scrapedData)
-
-	if args.OutputLimit > 0 { //print result
-
-		//preparing to print
-		keys := make([]int, 0, len(scrapedData.Data))
-		toPrint := map[int]database.ParsedData{}
-
-		for k := range scrapedData.Data {
-			keys = append(keys, k)
-		}
-
-		sort.Ints(keys)
-
-		if len(keys) > args.OutputLimit {
-			keys = keys[:args.OutputLimit]
-		}
-
-		// Выводим значения в порядке отсортированных ключей
-		for _, k := range keys {
-			toPrint[k] = scrapedData.Data[k]
-		}
-		fmt.Println(database.DataToPrint(toPrint))
+	for _, k := range keys {
+		toPrint[k] = scrapedData.Data[k]
 	}
-
+	fmt.Println(database.DataToPrint(toPrint))
 }
 
 func findLastID(data map[int]database.ParsedData) int {
 	if len(data) == 0 {
-		return 0
+		return 1
 	}
 	var maxID int
 
@@ -94,4 +47,26 @@ func findLastID(data map[int]database.ParsedData) int {
 		}
 	}
 	return maxID
+}
+func Output(args OutputStruct) {
+
+	scrapedData, err := database.ReadDatabase(args.DatabasePath)
+	if err != nil {
+		fmt.Println("err")
+	}
+
+	//retry for badIDs
+	if len(scrapedData.BadIDs) != 0 {
+		for ID := range scrapedData.BadIDs {
+			scrapedData = MainScrape(scrapedData.Data, scrapedData.BadIDs, 1, ID)
+		}
+	}
+
+	scrapedData = MainScrape(scrapedData.Data, scrapedData.BadIDs, args.ScrapeLimit, findLastID(scrapedData.Data))
+	database.WriteData(args.DatabasePath, scrapedData)
+
+	if args.OutputLimit > 0 {
+		prepToPrint(scrapedData, args.OutputLimit)
+	}
+
 }
