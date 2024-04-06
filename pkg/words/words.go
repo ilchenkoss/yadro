@@ -1,12 +1,14 @@
 package words
 
 import (
-	"bufio"
+	_ "embed"
 	"github.com/kljensen/snowball"
-	"os"
 	"regexp"
 	"strings"
 )
+
+//go:embed wordsToRemove.txt
+var WordsFile string
 
 func CleanWord(uncleanedWord string) string {
 	//clearing a word from non-word characters
@@ -41,22 +43,10 @@ func loadStopWords() map[string]bool {
 
 	stopWords := make(map[string]bool)
 
-	file, err := os.Open("./pkg/words/wordsToRemove.txt")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
+	words := strings.Fields(WordsFile)
 
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-
-		line := scanner.Text()
-		word := strings.TrimSpace(line)
-
-		if word != "" {
-			stopWords[strings.ToLower(word)] = true
-		}
+	for _, word := range words {
+		stopWords[strings.ToLower(word)] = true
 	}
 
 	return stopWords

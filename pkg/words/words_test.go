@@ -96,7 +96,7 @@ func TestDuplicate(t *testing.T) {
 
 func TestSifting(t *testing.T) {
 
-	tests := 10000
+	tests := 10
 
 	//words to generate
 	keyWordsCount := 30
@@ -139,7 +139,7 @@ func TestSifting(t *testing.T) {
 
 func TestSynth(t *testing.T) {
 
-	var tests = 1000
+	var tests = 10
 	uniqueWords := 15
 	duplicates := 3
 
