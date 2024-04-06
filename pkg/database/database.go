@@ -7,6 +7,32 @@ import (
 	"time"
 )
 
+func ReadDatabase(dbpath string) (ScrapeResult, error) {
+
+	dataBytes, databaseErr := readBytesFromFile(dbpath) //data
+
+	if databaseErr == nil { //db read ok
+
+		dbData, decodeErr := DecodeData(dataBytes) //try decode
+
+		if decodeErr != nil { //decode err
+			panic(decodeErr)
+
+		} else { //decode good
+
+			return dbData, nil
+		}
+	} else { //error reading database
+
+		if os.IsNotExist(databaseErr) { //if database not exists
+			return ScrapeResult{}, nil
+		} else {
+			panic(databaseErr) //read error and file exists
+		}
+	}
+
+}
+
 func DataToPrint(data map[int]ParsedData) string {
 	bytes, err := json.MarshalIndent(data, "", "   ")
 	if err != nil {
@@ -25,7 +51,7 @@ type ScrapeResult struct {
 	Timestamp time.Time          `json:"timestamp"`
 }
 
-func ReadData(filePath string) ([]byte, error) {
+func readBytesFromFile(filePath string) ([]byte, error) {
 	fileData, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
