@@ -131,6 +131,7 @@ func secondScrape(client http.Client, ID int, badIDs map[int]int, retries int) (
 		return secondScrape(client, ID, badIDs, retries-1)
 
 	} else if ID != 404 { // if statusCode == 404 and id != 404
+
 		Condition = false
 		return nil, badIDs
 
