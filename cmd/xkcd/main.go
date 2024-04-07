@@ -51,15 +51,10 @@ func addInterruptHandling() {
 		//change condition
 		xkcd.Condition = false
 		fmt.Println("Interrupt. Stopping scrape...")
-		//add timeout
-		timeout := time.After(2 * time.Second)
-		go func() {
-			select {
-			case <-timeout:
-				fmt.Println("timeout interrupt")
-				os.Exit(1)
-			}
-		}()
+
+		//add emergency exit
+		time.Sleep(10 * time.Second)
+		os.Exit(1)
 	}()
 }
 
