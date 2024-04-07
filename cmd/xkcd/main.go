@@ -20,10 +20,10 @@ type Config struct {
 	} `yaml:"database"`
 }
 
-func loadConfig() (Config, error) {
+func loadConfig(configPath string) (Config, error) {
 
 	//open file
-	file, err := os.Open("config.yaml")
+	file, err := os.Open(configPath)
 	if err != nil {
 		return Config{}, err
 	}
@@ -62,17 +62,18 @@ func main() {
 
 	addInterruptHandling()
 
+	//parse flags
+	output := flag.Bool("o", false, "output data")
+	outputLimit := flag.Int("n", 2, "number of data output")
+	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
+	flag.Parse()
+
 	// load config
-	config, err := loadConfig()
+	config, err := loadConfig(*configPath)
 	if err != nil {
 		fmt.Println("Error config load:", err)
 		return
 	}
-
-	//parse flags
-	output := flag.Bool("o", false, "output data")
-	outputLimit := flag.Int("n", 2, "number of data output")
-	flag.Parse()
 
 	//check sourceURL
 	if config.Scrape.SourceURL == "https://xkcd.com/" {
