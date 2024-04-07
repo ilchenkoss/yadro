@@ -2,7 +2,6 @@ package xkcd
 
 import (
 	"fmt"
-	"myapp/pkg/database"
 	"myapp/pkg/scraper"
 	"sort"
 )
@@ -15,10 +14,10 @@ type OutputStruct struct {
 	ScrapeLimit  int
 }
 
-func PrintLimitedData(scrapedData database.ScrapeResult, outputLimit int) {
+func PrintLimitedData(scrapedData scraper.ScrapeResult, outputLimit int) {
 
 	keys := make([]int, 0, len(scrapedData.Data))
-	toPrint := map[int]database.ParsedData{}
+	toPrint := map[int]scraper.ParsedData{}
 
 	for k := range scrapedData.Data {
 		keys = append(keys, k)

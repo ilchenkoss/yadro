@@ -22,7 +22,7 @@ const (
 
 var Condition = true //wait comics end or interrupt
 
-func findLastID(data map[int]database.ParsedData) int {
+func findLastID(data map[int]ParsedData) int {
 
 	var maxID int
 
@@ -34,10 +34,11 @@ func findLastID(data map[int]database.ParsedData) int {
 	return maxID
 }
 
-func Scrape(dbPath string, eDBPath string, scrapeLimit int) database.ScrapeResult {
+func Scrape(dbPath string, eDBPath string, scrapeLimit int) ScrapeResult {
 
 	//data from db
-	dbData := database.ReadDatabase(dbPath)
+	dbDataBytes := database.ReadBytesFromFile(dbPath)
+	dbData := DecodeFileData(dbDataBytes)
 
 	//choose ID, where stopped last scrape
 	startID := findLastID(dbData.Data) + 1
@@ -46,12 +47,13 @@ func Scrape(dbPath string, eDBPath string, scrapeLimit int) database.ScrapeResul
 	scrapedData := MainScrape(dbData, scrapeLimit, startID)
 
 	//write last data
-	database.WriteData(dbPath, eDBPath, scrapedData)
+	scrapedDataBytes := codeData(scrapedData)
+	database.WriteData(dbPath, eDBPath, scrapedDataBytes)
 
 	return scrapedData
 }
 
-func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) database.ScrapeResult {
+func MainScrape(dbData ScrapeResult, scrapeLimit int, startID int) ScrapeResult {
 
 	resultData := dbData.Data
 	badIDs := maps.Clone(dbData.BadIDs)
@@ -60,7 +62,7 @@ func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) data
 
 	for Condition && scrapeLimit != 0 {
 
-		var data database.ParsedData
+		var data ParsedData
 		var response bool
 
 		for ID := range dbData.BadIDs {
@@ -95,7 +97,7 @@ func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) data
 	return dbData
 }
 
-func secondScrape(client http.Client, ID int, badIDs map[int]int) (database.ParsedData, map[int]int, bool) {
+func secondScrape(client http.Client, ID int, badIDs map[int]int) (ParsedData, map[int]int, bool) {
 
 	url := "https://xkcd.com/" + strconv.Itoa(ID) + "/info.0.json"
 	retries := 3
@@ -106,13 +108,13 @@ func secondScrape(client http.Client, ID int, badIDs map[int]int) (database.Pars
 		if statusCode != Status_code_comics_end {
 			badIDs[ID] = statusCode
 		}
-		return database.ParsedData{}, badIDs, false
+		return ParsedData{}, badIDs, false
 	}
 	delete(badIDs, ID)
 	data, err := responseParser(dataBytes)
 	if err != nil {
 		badIDs[ID] = Status_code_response_parser
-		return database.ParsedData{}, badIDs, false
+		return ParsedData{}, badIDs, false
 	}
 
 	return data, badIDs, true

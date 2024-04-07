@@ -1,15 +1,14 @@
 package scraper
 
 import (
-	"myapp/pkg/database"
 	"testing"
 )
 
 func TestMissID(t *testing.T) {
 
 	scrapeIDs := 10
-	dbData := database.ScrapeResult{
-		Data:   map[int]database.ParsedData{},
+	dbData := ScrapeResult{
+		Data:   map[int]ParsedData{},
 		BadIDs: map[int]int{},
 	}
 	scrapeResult := MainScrape(dbData, scrapeIDs, 1)
