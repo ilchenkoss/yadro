@@ -8,13 +8,17 @@ import (
 func TestMissID(t *testing.T) {
 
 	scrapeIDs := 10
-
-	scrapeResult := MainScrape(database.ScrapeResult{}, scrapeIDs, 1)
+	dbData := database.ScrapeResult{
+		Data:   map[int]database.ParsedData{},
+		BadIDs: map[int]int{},
+	}
+	scrapeResult := MainScrape(dbData, scrapeIDs, 1)
 
 	var IDs []int
 	for goodID := range scrapeResult.Data {
 		IDs = append(IDs, goodID)
 	}
+
 	for badID := range scrapeResult.BadIDs {
 		IDs = append(IDs, badID)
 	}

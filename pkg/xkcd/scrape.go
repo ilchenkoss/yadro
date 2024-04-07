@@ -6,27 +6,24 @@ import (
 	"myapp/pkg/database"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+)
+
+const (
+	Status_code_comics_end          = 0
+	Status_code_good                = 200
+	Status_code_response_error      = 1337
+	Status_code_response_read_error = 1338
+	Status_code_unknown             = 1339
+	Status_code_response_parser     = 1340
+	Status_code_no_such_host        = 1341
 )
 
 var Condition = true //wait comics end or interrupt
 
-func Scrape(dbPath string, scrapeLimit int) database.ScrapeResult {
-
-	//data from db
-	dbData := database.ReadDatabase(dbPath)
-	//choose ID, where stopped last scrape
-	startID := findLastID(dbData.Data) + 1
-	//get new data with old
-	scrapedData := MainScrape(dbData, scrapeLimit, startID)
-
-	return scrapedData
-}
-
 func findLastID(data map[int]database.ParsedData) int {
-	if len(data) == 0 {
-		return 0
-	}
+
 	var maxID int
 
 	for key := range data {
@@ -37,40 +34,53 @@ func findLastID(data map[int]database.ParsedData) int {
 	return maxID
 }
 
+func Scrape(dbPath string, scrapeLimit int) database.ScrapeResult {
+
+	//data from db
+	dbData := database.ReadDatabase(dbPath)
+
+	//choose ID, where stopped last scrape
+	startID := findLastID(dbData.Data) + 1
+
+	//get new data with old
+	scrapedData := MainScrape(dbData, scrapeLimit, startID)
+
+	return scrapedData
+}
+
 func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) database.ScrapeResult {
 
 	resultData := dbData.Data
 	badIDs := maps.Clone(dbData.BadIDs)
 
-	if startID == 1 {
-		resultData = map[int]database.ParsedData{} //result of scrape
-		badIDs = map[int]int{}                     //container with bad response and errors from scrape
-	}
-
 	client := http.Client{Timeout: time.Duration(1) * time.Second} //scrape client
 
 	for Condition && scrapeLimit != 0 {
-		var data []byte
-		//if bad requests in db, retry to scrape
-		if len(dbData.BadIDs) != 0 {
-			for ID := range dbData.BadIDs {
-				data, badIDs = secondScrape(client, ID, badIDs, 3)
-				delete(dbData.BadIDs, ID)
-				scrapeLimit -= 1
+
+		var data database.ParsedData
+		var response bool
+
+		for ID := range dbData.BadIDs {
+			if scrapeLimit == 0 || !Condition {
+				break
 			}
-		} else { //if not bad requests
-
-			data, badIDs = secondScrape(client, startID, badIDs, 3)
-
-			parsedData2, parserErr := responseParser(data)
-
-			if parserErr != nil && Condition == true {
-				badIDs[startID] = 1337 //parser error
-			} else if Condition == true {
-				resultData[startID] = parsedData2 //append data
+			data, badIDs, response = secondScrape(client, ID, badIDs)
+			delete(dbData.BadIDs, ID)
+			if response {
+				resultData[ID] = data //append data
 			}
-
+			scrapeLimit -= 1
 		}
+
+		if Condition { //condition need if interrupt, when checking bad IDs
+
+			data, badIDs, response = secondScrape(client, startID, badIDs)
+
+			if response {
+				resultData[startID] = data //append data
+			}
+		}
+
 		scrapeLimit -= 1
 		startID += 1
 	}
@@ -82,54 +92,78 @@ func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) data
 	return dbData
 }
 
-func secondScrape(client http.Client, ID int, badIDs map[int]int, retries int) ([]byte, map[int]int) {
+func secondScrape(client http.Client, ID int, badIDs map[int]int) (database.ParsedData, map[int]int, bool) {
 
 	url := "https://xkcd.com/" + strconv.Itoa(ID) + "/info.0.json"
-	println("id: " + strconv.Itoa(ID) + ", retries: " + strconv.Itoa(retries))
+	retries := 3
 
-	if retries <= 0 {
-		return nil, badIDs
+	dataBytes, statusCode := sendRequest(client, url, retries, ID, Status_code_unknown)
+
+	if statusCode != Status_code_good {
+		if statusCode != Status_code_comics_end {
+			badIDs[ID] = statusCode
+		}
+		return database.ParsedData{}, badIDs, false
 	}
 
-	//request
+	data, err := responseParser(dataBytes)
+	if err != nil {
+		badIDs[ID] = Status_code_response_parser
+		return database.ParsedData{}, badIDs, false
+	}
+
+	return data, badIDs, true
+
+}
+
+func sendRequest(client http.Client, url string, retries int, ID int, status int) ([]byte, int) { // return data, status code
+
+	if retries <= 0 || !Condition { //exit from recursion
+		return nil, status
+	}
+	println("id: " + strconv.Itoa(ID) + ", retries: " + strconv.Itoa(retries))
+
 	resp, err := client.Get(url)
 
 	if err != nil {
-
-		badIDs[ID] = 0 //error code
-		return secondScrape(client, ID, badIDs, retries-1)
-		//return nil, badIDs
+		if strings.Contains(err.Error(), "no such host") {
+			time.Sleep(1 * time.Second)
+			return sendRequest(client, url, retries-1, ID, Status_code_no_such_host)
+		}
+		return sendRequest(client, url, retries-1, ID, Status_code_response_error)
 	}
 
 	defer resp.Body.Close()
-
 	//response ok
 	if resp.StatusCode == 200 {
 
 		client.Timeout = 1 // reset timeout
 
 		body, errRead := io.ReadAll(resp.Body)
+
 		if errRead != nil {
-			badIDs[ID] = 13373 //error code of read response
-			return secondScrape(client, ID, badIDs, retries-1)
+			return sendRequest(client, url, retries-1, ID, Status_code_response_read_error)
 		}
-		delete(badIDs, ID)
-		return body, badIDs
 
-	} else if resp.StatusCode != 404 { //response not ok
+		return body, Status_code_good
 
-		badIDs[ID] = resp.StatusCode
+	}
+
+	if resp.StatusCode != 404 { //response not ok
 
 		client.Timeout = 5 //add time to response
-		return secondScrape(client, ID, badIDs, retries-1)
+		return sendRequest(client, url, retries-1, ID, resp.StatusCode)
 
-	} else if ID != 404 { // if statusCode == 404 and id != 404
-
-		Condition = false
-		return nil, badIDs
-
-	} else { // if funny 404 id
-
-		return nil, badIDs
 	}
+
+	if ID == 404 { //funny comics id
+		return nil, 200
+	}
+
+	if ID != 404 { // if statusCode == 404 and id != 404
+		Condition = false //comics end
+		return nil, Status_code_comics_end
+	}
+
+	return sendRequest(client, url, retries-1, ID, Status_code_unknown)
 }
