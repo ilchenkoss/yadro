@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"myapp/pkg/scraper"
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
