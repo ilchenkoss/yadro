@@ -105,7 +105,7 @@ func secondScrape(client http.Client, ID int, badIDs map[int]int) (database.Pars
 		}
 		return database.ParsedData{}, badIDs, false
 	}
-
+	delete(badIDs, ID)
 	data, err := responseParser(dataBytes)
 	if err != nil {
 		badIDs[ID] = Status_code_response_parser
