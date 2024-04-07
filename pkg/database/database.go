@@ -21,29 +21,24 @@ func ReadDatabase(dbpath string) ScrapeResult {
 
 	dataBytes, databaseErr := readBytesFromFile(dbpath) //data
 
-	if databaseErr == nil { //db read ok
-
-		dbData, decodeErr := DecodeData(dataBytes) //try decode
-
-		if decodeErr != nil { //decode err
-			panic(decodeErr)
-
-		} else { //decode good
-
-			return dbData
-		}
-
-	} else { //error reading database
+	if databaseErr != nil { //error reading database
 
 		if os.IsNotExist(databaseErr) { //if database not exists
 			return ScrapeResult{
 				Data:   map[int]ParsedData{},
 				BadIDs: map[int]int{},
 			}
-		} else {
-			panic(databaseErr) //read error and file exists
 		}
+		panic(databaseErr) //read error and file exists
 	}
+
+	dbData, decodeErr := DecodeData(dataBytes) //try decode db
+
+	if decodeErr != nil { //decode err
+		panic(decodeErr)
+	}
+
+	return dbData
 
 }
 
