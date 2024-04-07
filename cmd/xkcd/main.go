@@ -16,7 +16,6 @@ type Config struct {
 		ScrapePagesLimit int    `yaml:"scrape_pages_limit"`
 	} `yaml:"scrape"`
 	Database struct {
-		DBFile string `yaml:"db_file"`
 		DBPath string `yaml:"db_path"`
 	} `yaml:"database"`
 }
@@ -85,7 +84,7 @@ func main() {
 
 		if *output {
 			outputArgs := xkcd.OutputStruct{
-				DatabasePath: config.Database.DBPath + config.Database.DBFile,
+				DatabasePath: config.Database.DBPath,
 				OutputLimit:  *outputLimit,
 				ScrapeLimit:  config.Scrape.ScrapePagesLimit,
 			}
