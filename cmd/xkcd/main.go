@@ -77,15 +77,15 @@ func main() {
 	//check sourceURL
 	if config.Scrape.SourceURL == "https://xkcd.com/" {
 
-		if *output {
-			outputArgs := xkcd.OutputStruct{
-				DatabasePath: config.Database.DBPath,
-				OutputLimit:  *outputLimit,
-				ScrapeLimit:  config.Scrape.ScrapePagesLimit,
-			}
-
-			xkcd.Output(outputArgs)
+		args := xkcd.OutputStruct{
+			DatabasePath: config.Database.DBPath,
+			OutputLimit:  *outputLimit,
+			OutputFlag:   *output,
+			ScrapeLimit:  config.Scrape.ScrapePagesLimit,
 		}
+
+		xkcd.Xkcd(args)
+
 	} else {
 		fmt.Printf("Указанный в config.yaml source_url='%s' нельзя обработать.", config.Scrape.SourceURL)
 	}

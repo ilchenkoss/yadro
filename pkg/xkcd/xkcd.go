@@ -9,11 +9,12 @@ import (
 
 type OutputStruct struct {
 	DatabasePath string
+	OutputFlag   bool
 	OutputLimit  int
 	ScrapeLimit  int
 }
 
-func printLimitedData(scrapedData database.ScrapeResult, outputLimit int) {
+func PrintLimitedData(scrapedData database.ScrapeResult, outputLimit int) {
 
 	keys := make([]int, 0, len(scrapedData.Data))
 	toPrint := map[int]database.ParsedData{}
@@ -34,7 +35,7 @@ func printLimitedData(scrapedData database.ScrapeResult, outputLimit int) {
 	fmt.Println(database.DataToPrint(toPrint))
 }
 
-func Output(args OutputStruct) {
+func Xkcd(args OutputStruct) {
 
 	scrapedData := Scrape(args.DatabasePath, args.ScrapeLimit)
 
@@ -53,8 +54,7 @@ func Output(args OutputStruct) {
 
 	}
 
-	if args.OutputLimit > 0 {
-		printLimitedData(scrapedData, args.OutputLimit)
+	if args.OutputFlag {
+		PrintLimitedData(scrapedData, args.OutputLimit)
 	}
-
 }
