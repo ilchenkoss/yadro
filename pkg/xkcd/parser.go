@@ -23,6 +23,9 @@ func decodeResponse(data []byte) (ResponseData, error) {
 func responseParser(data []byte) (database.ParsedData, error) {
 
 	result := database.ParsedData{}
+	if data == nil {
+		return database.ParsedData{}, nil
+	}
 
 	jsonData, err := decodeResponse(data)
 	result.Keywords = words.StringNormalization(jsonData.Alt)

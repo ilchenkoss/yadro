@@ -36,7 +36,10 @@ func ReadDatabase(dbpath string) ScrapeResult {
 	} else { //error reading database
 
 		if os.IsNotExist(databaseErr) { //if database not exists
-			return ScrapeResult{}
+			return ScrapeResult{
+				Data:   map[int]ParsedData{},
+				BadIDs: map[int]int{},
+			}
 		} else {
 			panic(databaseErr) //read error and file exists
 		}
