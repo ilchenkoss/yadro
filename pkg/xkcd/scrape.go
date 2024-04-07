@@ -2,6 +2,7 @@ package xkcd
 
 import (
 	"io"
+	"maps"
 	"myapp/pkg/database"
 	"net/http"
 	"strconv"
@@ -36,18 +37,10 @@ func findLastID(data map[int]database.ParsedData) int {
 	return maxID
 }
 
-func deepCopyMap(originalMap map[int]int) map[int]int {
-	copiedMap := make(map[int]int)
-	for key, value := range originalMap {
-		copiedMap[key] = value
-	}
-	return copiedMap
-}
-
 func MainScrape(dbData database.ScrapeResult, scrapeLimit int, startID int) database.ScrapeResult {
 
 	resultData := dbData.Data
-	badIDs := deepCopyMap(dbData.BadIDs)
+	badIDs := maps.Clone(dbData.BadIDs)
 
 	if startID == 1 {
 		resultData = map[int]database.ParsedData{} //result of scrape
