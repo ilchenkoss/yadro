@@ -1,4 +1,4 @@
-package xkcd
+package scraper
 
 import (
 	"io"
@@ -34,7 +34,7 @@ func findLastID(data map[int]database.ParsedData) int {
 	return maxID
 }
 
-func Scrape(dbPath string, scrapeLimit int) database.ScrapeResult {
+func Scrape(dbPath string, eDBPath string, scrapeLimit int) database.ScrapeResult {
 
 	//data from db
 	dbData := database.ReadDatabase(dbPath)
@@ -44,6 +44,9 @@ func Scrape(dbPath string, scrapeLimit int) database.ScrapeResult {
 
 	//get new data with old
 	scrapedData := MainScrape(dbData, scrapeLimit, startID)
+
+	//write last data
+	database.WriteData(dbPath, eDBPath, scrapedData)
 
 	return scrapedData
 }

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"myapp/pkg/scraper"
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
@@ -20,12 +21,13 @@ type Config struct {
 	} `yaml:"database"`
 }
 
-func loadConfig(configPath string) (Config, error) {
+func loadConfig(configPath string) Config {
 
 	//open file
 	file, err := os.Open(configPath)
 	if err != nil {
-		return Config{}, err
+		fmt.Println("Error load config:", err)
+		return Config{}
 	}
 	defer file.Close()
 
@@ -33,10 +35,11 @@ func loadConfig(configPath string) (Config, error) {
 	var config Config
 	decoder := yaml.NewDecoder(file)
 	if decodeErr := decoder.Decode(&config); decodeErr != nil {
-		return Config{}, decodeErr
+		fmt.Println("Error load config:", decodeErr)
+		return Config{}
 	}
 
-	return config, nil
+	return config
 }
 
 func addInterruptHandling() {
@@ -49,7 +52,7 @@ func addInterruptHandling() {
 		//wait interrupt
 		<-sign
 		//change condition
-		xkcd.Condition = false
+		scraper.Condition = false
 		fmt.Println("Interrupt. Stopping scrape...")
 
 		//add emergency exit
@@ -66,20 +69,19 @@ func main() {
 	output := flag.Bool("o", false, "output data")
 	outputLimit := flag.Int("n", 2, "number of data output")
 	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
+	emergencyDBPath := flag.String("e", "./pkg/database/edb.json", "emergency Database path")
+
 	flag.Parse()
 
 	// load config
-	config, err := loadConfig(*configPath)
-	if err != nil {
-		fmt.Println("Error config load:", err)
-		return
-	}
+	config := loadConfig(*configPath)
 
 	//check sourceURL
 	if config.Scrape.SourceURL == "https://xkcd.com/" {
 
 		args := xkcd.OutputStruct{
 			DatabasePath: config.Database.DBPath,
+			EDBPath:      *emergencyDBPath,
 			OutputLimit:  *outputLimit,
 			OutputFlag:   *output,
 			ScrapeLimit:  config.Scrape.ScrapePagesLimit,

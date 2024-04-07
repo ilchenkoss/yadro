@@ -3,12 +3,13 @@ package xkcd
 import (
 	"fmt"
 	"myapp/pkg/database"
-	"os"
+	"myapp/pkg/scraper"
 	"sort"
 )
 
 type OutputStruct struct {
 	DatabasePath string
+	EDBPath      string
 	OutputFlag   bool
 	OutputLimit  int
 	ScrapeLimit  int
@@ -32,27 +33,12 @@ func PrintLimitedData(scrapedData database.ScrapeResult, outputLimit int) {
 	for _, k := range keys {
 		toPrint[k] = scrapedData.Data[k]
 	}
-	fmt.Println(database.DataToPrint(toPrint))
+	fmt.Println(scraper.DataToPrint(toPrint))
 }
 
 func Xkcd(args OutputStruct) {
 
-	scrapedData := Scrape(args.DatabasePath, args.ScrapeLimit)
-
-	//write last data
-	err := database.WriteData(args.DatabasePath, scrapedData)
-
-	if err != nil {
-
-		errSave2 := database.WriteData("temp_db.json", scrapedData)
-		if errSave2 != nil {
-			fmt.Println("can't save Data")
-		} else {
-			pwd, _ := os.Getwd()
-			fmt.Printf("data saved to %s%s", pwd, "temp_db.json")
-		}
-
-	}
+	scrapedData := scraper.Scrape(args.DatabasePath, args.EDBPath, args.ScrapeLimit)
 
 	if args.OutputFlag {
 		PrintLimitedData(scrapedData, args.OutputLimit)

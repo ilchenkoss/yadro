@@ -1,7 +1,8 @@
-package xkcd
+package scraper
 
 import (
 	"encoding/json"
+	"fmt"
 	"myapp/pkg/database"
 	"myapp/pkg/words"
 )
@@ -20,6 +21,13 @@ func decodeResponse(data []byte) (ResponseData, error) {
 	return result, nil
 }
 
+func DataToPrint(data map[int]database.ParsedData) string {
+	bytes, err := json.MarshalIndent(data, "", "   ")
+	if err != nil {
+		fmt.Println("Ошибка при форматировании JSON:", err)
+	}
+	return string(bytes)
+}
 func responseParser(data []byte) (database.ParsedData, error) {
 
 	result := database.ParsedData{}

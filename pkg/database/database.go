@@ -7,16 +7,6 @@ import (
 	"time"
 )
 
-type ParsedData struct {
-	Keywords []string `json:"keywords"`
-	Url      string   `json:"url"`
-}
-type ScrapeResult struct {
-	Data      map[int]ParsedData `json:"data"`
-	BadIDs    map[int]int        `json:"badIDs"`
-	Timestamp time.Time          `json:"timestamp"`
-}
-
 func ReadDatabase(dbpath string) ScrapeResult {
 
 	dataBytes, databaseErr := readBytesFromFile(dbpath) //data
@@ -42,12 +32,14 @@ func ReadDatabase(dbpath string) ScrapeResult {
 
 }
 
-func DataToPrint(data map[int]ParsedData) string {
-	bytes, err := json.MarshalIndent(data, "", "   ")
-	if err != nil {
-		fmt.Println("Ошибка при форматировании JSON:", err)
-	}
-	return string(bytes)
+type ScrapeResult struct {
+	Data      map[int]ParsedData `json:"data"`
+	BadIDs    map[int]int        `json:"badIDs"`
+	Timestamp time.Time          `json:"timestamp"`
+}
+type ParsedData struct {
+	Keywords []string `json:"keywords"`
+	Url      string   `json:"url"`
 }
 
 func readBytesFromFile(filePath string) ([]byte, error) {
@@ -57,6 +49,7 @@ func readBytesFromFile(filePath string) ([]byte, error) {
 	}
 	return fileData, nil
 }
+
 func DecodeData(fileData []byte) (ScrapeResult, error) {
 	var data ScrapeResult
 	if err := json.Unmarshal(fileData, &data); err != nil {
@@ -64,26 +57,49 @@ func DecodeData(fileData []byte) (ScrapeResult, error) {
 	}
 	return data, nil
 }
-func WriteData(filePath string, data ScrapeResult) error {
-	// create file or exist
+
+func WriteData(filePath string, eDBpath string, data ScrapeResult) {
+
+	//try to write data in main db file
+	err := writeToFile(filePath, data, false)
+
+	if err != nil {
+
+		//try to write data in emergency db file
+		err = writeToFile(eDBpath, data, true)
+
+		if err != nil {
+			fmt.Println("Все потеряно, данные не записаны:", err)
+			return
+		}
+	}
+	return
+}
+
+func writeToFile(filePath string, data ScrapeResult, emergency bool) error {
+
+	// Open or create database file
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Println("Ошибка открытия файла:", err)
+		return err
 	}
 	defer file.Close()
 
-	//code to json
+	// Code to JSON
 	jsonData, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
-		fmt.Println("Ошибка при кодировании в JSON:", err)
 		return err
 	}
 
-	//write to file
-	err = os.WriteFile("./pkg/database/database.json", jsonData, 0644)
+	// Write to database file
+	_, err = file.Write(jsonData)
 	if err != nil {
-		fmt.Println("Ошибка при записи данных в файл:", err)
 		return err
 	}
+
+	if emergency {
+		fmt.Printf("Данные записаны в аварийную базу данных: ", filePath)
+	}
+
 	return nil
 }

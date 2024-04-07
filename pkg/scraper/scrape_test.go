@@ -1,4 +1,4 @@
-package xkcd
+package scraper
 
 import (
 	"myapp/pkg/database"
