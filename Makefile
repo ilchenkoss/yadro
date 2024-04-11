@@ -1,5 +1,9 @@
-build:
-	@go build -o myapp .
-test:
+build: deps
+	@go build -o xkcd ./cmd/xkcd
+
+test: deps
 	@echo "Running Tests"
-	@go test
+	@go test -v ./...
+
+deps:
+	@go get ./...

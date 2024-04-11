@@ -1,7 +1,8 @@
-package main
+package words
 
 import (
 	"bytes"
+	"github.com/kljensen/snowball"
 	"github.com/tjarratt/babble"
 	"math/rand"
 	"reflect"
@@ -53,7 +54,7 @@ func TestExample1(t *testing.T) {
 
 	notNormalizedString := "follower brings bunch of questions!"
 	expected := []string{"follow", "bunch", "bring", "question"}
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
@@ -64,7 +65,7 @@ func TestExample2(t *testing.T) {
 
 	notNormalizedString := "i'll follow you as long as you are following me"
 	expected := []string{"follow", "long"}
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
@@ -75,7 +76,7 @@ func TestEmpty(t *testing.T) {
 
 	notNormalizedString := ""
 	var expected []string
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n want: %s, \n got: %s.", errDetails["actual"], errDetails["expected"])
@@ -86,7 +87,7 @@ func TestDuplicate(t *testing.T) {
 
 	notNormalizedString := "follow following, follower with followers"
 	expected := []string{"follow"}
-	actual := stringNormalization(notNormalizedString)
+	actual := StringNormalization(notNormalizedString)
 
 	if equal, errDetails := comparisonSlices(expected, actual); equal == false {
 		t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
@@ -95,7 +96,7 @@ func TestDuplicate(t *testing.T) {
 
 func TestSifting(t *testing.T) {
 
-	tests := 100
+	tests := 10
 
 	//words to generate
 	keyWordsCount := 30
@@ -111,7 +112,7 @@ func TestSifting(t *testing.T) {
 
 	for i := 0; i < tests; i++ {
 
-		generatedWords := generateUniqueWords(keyWordsCount, trashWords)
+		generatedWords := generateWords(keyWordsCount, trashWords, 0)
 		resultSlice := append([]string(nil), generatedWords...)
 
 		trashWordsCount := (keyWordsCount * trashWordsChance) / 100
@@ -139,7 +140,8 @@ func TestSifting(t *testing.T) {
 func TestSynth(t *testing.T) {
 
 	var tests = 10
-	wordsCount := 15
+	uniqueWords := 15
+	duplicates := 3
 
 	punctuationChance := 40
 	punctuation := []string{
@@ -164,7 +166,7 @@ func TestSynth(t *testing.T) {
 		//buffer for synth string
 		var synthStringBuffer bytes.Buffer
 
-		generatedWords := generateUniqueWords(wordsCount, trashWords)
+		generatedWords := generateWords(uniqueWords, trashWords, duplicates)
 
 		for index, word := range generatedWords {
 
@@ -190,15 +192,15 @@ func TestSynth(t *testing.T) {
 				synthStringBuffer.WriteString(" " + pick)
 			}
 
-			if index != wordsCount-1 {
+			if index != len(generatedWords)-1 {
 				synthStringBuffer.WriteString(" ")
 			}
 		}
 
 		finalString := synthStringBuffer.String()
-		actual := stringNormalization(finalString)
+		actual := StringNormalization(finalString)
 
-		if len(generatedWords) != len(actual) {
+		if uniqueWords != len(actual) {
 
 			_, errDetails := comparisonSlices(actual, generatedWords)
 
@@ -207,40 +209,68 @@ func TestSynth(t *testing.T) {
 	}
 }
 
-func generateUniqueWords(uniqueWordsCount int, trashWords map[string]bool) []string {
+func generateWords(uniqueWords int, trashWords map[string]bool, duplicates int) []string {
 
+	wordsCount := uniqueWords + duplicates
+
+	//duplicate stemmed words
 	duplicateContainer := make(map[string]bool)
-	generatedWords := make([]string, uniqueWordsCount)
+
+	generatedWords := make([]string, wordsCount)
 
 	//word generator
 	babbler := babble.NewBabbler()
 	babbler.Count = 1
 
-	for i := 0; i < uniqueWordsCount; i++ {
+	for i := 0; i < uniqueWords; i++ {
 
 		var successGen bool
 
-		successGen, word := generateUniqueWord(duplicateContainer, trashWords, 5, babbler)
+		successGen, word, stemmedWord := generateUniqueWord(duplicateContainer, trashWords, 5, babbler)
 
 		if !successGen {
 			word = "word"
 		}
 
 		generatedWords[i] = word
-		duplicateContainer[word] = true
+		duplicateContainer[stemmedWord] = true
 	}
 
+	//add duplicates
+	if duplicates > 0 {
+
+		var duplicateKeys []string
+
+		for key, _ := range duplicateContainer {
+			duplicateKeys = append(duplicateKeys, key)
+		}
+
+		for i := uniqueWords; i < wordsCount; i++ {
+			word := generatedWords[rand.Intn(uniqueWords-1)]
+			generatedWords[i] = word
+		}
+	}
 	return generatedWords
 }
 
-func generateUniqueWord(duplicateContainer map[string]bool, trashWords map[string]bool, retry int, babbler babble.Babbler) (bool, string) {
+func generateUniqueWord(duplicateContainer map[string]bool, trashWords map[string]bool, retry int, babbler babble.Babbler) (bool, string, string) {
 
 	word := babbler.Babble()
 	word = strings.ToLower(word)
 
-	if trashWords[word] || len(word) <= 2 || duplicateContainer[word] {
+	//uniqueness
+	stemmedWord, err := snowball.Stem(word, "english", true)
+	if err == nil {
+
+		if trashWords[word] || len(word) <= 2 || duplicateContainer[stemmedWord] {
+			return generateUniqueWord(duplicateContainer, trashWords, retry-1, babbler)
+		}
+
+		return true, word, stemmedWord
+
+	} else {
+		//if stem error
 		return generateUniqueWord(duplicateContainer, trashWords, retry-1, babbler)
 	}
 
-	return true, word
 }

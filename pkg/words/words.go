@@ -1,16 +1,16 @@
-package main
+package words
 
 import (
-	"bufio"
-	"flag"
-	"fmt"
+	_ "embed"
 	"github.com/kljensen/snowball"
-	"os"
 	"regexp"
 	"strings"
 )
 
-func cleanWord(uncleanedWord string) string {
+//go:embed wordsToRemove.txt
+var WordsFile string
+
+func CleanWord(uncleanedWord string) string {
 	//clearing a word from non-word characters
 
 	var regex = regexp.MustCompile(`[^a-zA-Z']+`)
@@ -43,22 +43,10 @@ func loadStopWords() map[string]bool {
 
 	stopWords := make(map[string]bool)
 
-	file, err := os.Open("wordsToRemove.txt")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
+	words := strings.Fields(WordsFile)
 
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-
-		line := scanner.Text()
-		word := strings.TrimSpace(line)
-
-		if word != "" {
-			stopWords[strings.ToLower(word)] = true
-		}
+	for _, word := range words {
+		stopWords[strings.ToLower(word)] = true
 	}
 
 	return stopWords
@@ -70,9 +58,9 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
 	for _, word := range sliceWords {
 
-		word = strings.ToLower(cleanWord(word))
+		word = strings.ToLower(CleanWord(word))
 
-		if !stopWords[word] && len(word) > 1 {
+		if !stopWords[word] && len(word) > 2 {
 			keywords = append(keywords, word)
 		}
 	}
@@ -81,7 +69,7 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
 }
 
-func stringNormalization(inputString string) []string {
+func StringNormalization(inputString string) []string {
 
 	//parse string
 	stringFields := strings.Fields(inputString)
@@ -93,20 +81,4 @@ func stringNormalization(inputString string) []string {
 	stemmedWords := stemming(siftingWords)
 
 	return stemmedWords
-}
-
-func main() {
-
-	//приложение, которое нормализует перечисленные в виде аргументов слова (на английском).
-	//Приложение должно отсеивать часто употребляемые слова
-	//типа of/a/the/, местоимения и глагольные частицы (will)
-
-	inputString := flag.String("s", "string to normalize", "string to normalize")
-	flag.Parse()
-
-	keywords := stringNormalization(*inputString)
-
-	//print
-	outputString := strings.Join(keywords, " ")
-	fmt.Println(outputString)
 }

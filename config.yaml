@@ -1,0 +1,5 @@
+scrape:
+  source_url: "https://xkcd.com/"
+  scrape_pages_limit: -1   # -1 -> all pages
+database:
+  db_path : "./pkg/database/database.json"
