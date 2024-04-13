@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"myapp/pkg/words"
+	"sync"
 )
 
 var score = 0
@@ -59,25 +60,20 @@ func responseParser(data []byte) (ParsedData, error) {
 	return result, nil
 }
 
-func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, resultCh chan map[int]ScrapedData, finishCh chan struct{}) {
+func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, pwg *sync.WaitGroup, resultCh chan map[int]ScrapedData) {
 
-	for {
-		select {
-		case scrape := <-goodScrapesCh:
-			data, err := responseParser(scrape)
-			if err == nil {
-				dbData[data.ID] = ScrapedData{
-					Keywords: data.Keywords,
-					Url:      data.Url,
-				}
+	for scrape := range goodScrapesCh {
+		data, err := responseParser(scrape)
+		if err == nil {
+			dbData[data.ID] = ScrapedData{
+				Keywords: data.Keywords,
+				Url:      data.Url,
 			}
-			score++
-			fmt.Println("Score:", score)
-			ParserScore.Done()
-
-		case <-finishCh:
-			resultCh <- dbData
-			return
 		}
+		score++
+		fmt.Println("Score:", score)
+		pwg.Done()
 	}
+	resultCh <- dbData
+	return
 }

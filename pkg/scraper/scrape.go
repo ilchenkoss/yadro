@@ -5,6 +5,8 @@ import (
 	"io"
 	"myapp/pkg/database"
 	"net/http"
+	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,22 +14,39 @@ import (
 )
 
 var Condition = true //interrupt
-var ParserScore = sync.WaitGroup{}
 
-func findLastID(data map[int]ScrapedData) int {
+func findIDs(data map[int]ScrapedData) (int, []int) {
 
 	var maxID int
+	var IDs []int
+	var missingIDs []int
+
 	for key := range data {
-		if key > maxID {
-			maxID = key
+		IDs = append(IDs, key)
+	}
+
+	sort.Ints(IDs)
+
+	if len(IDs) > 0 {
+		maxID = IDs[len(IDs)-1]
+	} else {
+		maxID = 0
+	}
+
+	for i := 1; i < len(IDs); i++ {
+		if IDs[i]-IDs[i-1] > 1 {
+			for j := IDs[i-1] + 1; j < IDs[i]; j++ {
+				missingIDs = append(missingIDs, j)
+			}
 		}
 	}
-	return maxID
+
+	return maxID + 1, missingIDs
 }
 
 func Scrape(dbPath string,
 	eDBPath string,
-	tempDir string,
+	tempDirPath string,
 	tempFolderPattern string,
 	tempFilePattern string,
 	scrapeLimit int,
@@ -35,7 +54,7 @@ func Scrape(dbPath string,
 	parallel int) error {
 
 	//check temp files
-	tempFolders := database.FoundTemp(tempDir, tempFolderPattern)
+	tempFolders := database.FoundTemp(tempDirPath, tempFolderPattern)
 	if len(tempFolders) > 0 {
 		//parser and append
 		fmt.Println("temp exists")
@@ -45,14 +64,11 @@ func Scrape(dbPath string,
 	dbDataBytes := database.ReadBytesFromFile(dbPath)
 	dbData := decodeFileData(dbDataBytes)
 
-	//choose ID, where stopped last scrape
-	startID := findLastID(dbData) + 1
-
-	//found missed IDs
-	missedIDs := []int{291}
+	//choose ID, where stopped last scrape; get missedIDs
+	startID, missedIDs := findIDs(dbData)
 
 	//scrape new data
-	scrapedData := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData)
+	scrapedData, newTempFolders := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern)
 
 	//write last data
 	scrapedDataBytes := codeFileData(scrapedData)
@@ -60,10 +76,18 @@ func Scrape(dbPath string,
 
 	if dbErr == nil {
 		//remove temps
-		fmt.Println("all good, db saved")
-	} else {
-		fmt.Println(dbErr)
+		for oldTempFoldersName := range tempFolders {
+			os.Remove(tempDirPath + oldTempFoldersName)
+		}
+		for _, newTempFoldersName := range newTempFolders {
+			fmt.Println(newTempFoldersName)
+			//КОСТЫЛЬ
+			if len(newTempFoldersName) > 0 {
+				os.Remove(newTempFoldersName)
+			}
+		}
 	}
+	fmt.Println(dbErr)
 
 	return nil
 }
@@ -83,6 +107,7 @@ func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, fin
 	for Condition && scrapeLimit != 0 {
 		fmt.Println(scrapeLimit, startID)
 		jobs <- startID
+		fmt.Println("ID", startID)
 		startID++
 		scrapeLimit--
 	}
@@ -90,29 +115,32 @@ func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, fin
 	return
 }
 
-func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, scrapeLimit int, dbData map[int]ScrapedData) map[int]ScrapedData {
+func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, scrapeLimit int, dbData map[int]ScrapedData, tempDirPath string, tempFolderPattern string) (map[int]ScrapedData, []string) {
 
 	// Create buffered channels for jobs and results
 	jobs := make(chan int, 1)
-	goodScrapesCh := make(chan []byte)
+	goodScrapesCh := make(chan []byte, 1)
 	resultCh := make(chan map[int]ScrapedData, 1)
-	finishCh := make(chan struct{})
 	finishScrapeCh := make(chan struct{})
-	parserEndCh := make(chan struct{})
+
+	tempDirsCh := make(chan string, parallel)
 
 	// Set scraper WaitGroup
 	var swg sync.WaitGroup
 	swg.Add(parallel)
 
+	// Set parser WaitGroup
+	var pwg sync.WaitGroup
+
 	// Create scrape worker goroutines
 	for sworker := 1; sworker <= parallel; sworker++ {
-		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, finishScrapeCh)
+		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, finishScrapeCh, tempDirPath, tempFolderPattern, tempDirsCh)
 	}
 
 	// Append temped response
 
 	// Create parser worker
-	go parserWorker(dbData, goodScrapesCh, resultCh, finishCh)
+	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh)
 
 	// Append IDs to jobs
 	go appendIDs(jobs, scrapeLimit, missedIDs, startID, finishScrapeCh)
@@ -120,57 +148,56 @@ func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, sc
 	// Launch a goroutine to wait for all jobs to finish
 	go func() {
 		swg.Wait()
-		fmt.Println("here")
 		close(jobs)
-		go func() {
+		pwg.Wait()
+		close(goodScrapesCh)
+	}()
 
-			ParserScore.Wait()
-			close(parserEndCh)
-
-			for {
-				select {
-				case <-parserEndCh:
-					close(goodScrapesCh)
-					close(finishCh)
-					return
-				}
+	//костыль
+	var tempDirsSlice []string
+	go func() {
+		for {
+			select {
+			case tempDir := <-tempDirsCh:
+				tempDirsSlice = append(tempDirsSlice, tempDir)
 			}
-		}()
+
+		}
 	}()
 
 	// Process results
 	result := make(map[int]ScrapedData)
+
 	for res := range resultCh {
 		result = res
-		fmt.Println("result")
 		close(resultCh)
+		close(tempDirsCh)
 	}
 
-	return result
+	return result, tempDirsSlice
 }
 
 // worker performs the task on jobs received and sends results to the results channel.
-func scrapeWorker(retries int, workerID int, IDsChan chan int, results chan []byte, swg *sync.WaitGroup, finishScrapeCh chan struct{}) {
+func scrapeWorker(retries int,
+	workerID int,
+	IDsChan chan int,
+	results chan []byte,
+	swg *sync.WaitGroup,
+	pwg *sync.WaitGroup,
+	finishScrapeCh chan struct{},
+	tempDirPath string,
+	tempFolderPattern string,
+	tempFoldersCh chan string) {
 
 	//переместить в место создание воркеров
 	//create temp folder
-	//database.CreateTempFolder(tempDirPath, tempFolderPattern, workerID)
-	//remove after wgparser.done() and dbsave.done()
+	fmt.Println("create temp")
+	tempFolder := database.CreateTempFolder(tempDirPath, tempFolderPattern, workerID)
+	fmt.Println("after temp")
+	tempFoldersCh <- tempFolder
 
 	client := http.Client{Timeout: time.Duration(1) * time.Second} //scrape client
 	//we need client for any worker, because we change timeout time
-
-	//for ID := range IDsChan {
-	//	fmt.Println("Scrape status: workerID:", workerID, "requestID:", ID)
-	//	url := fmt.Sprintf("https://xkcd.com/%d/info.0.json", ID)
-	//
-	//	if !Condition { //interrupt
-	//		wg.Done()
-	//		return
-	//	}
-	//
-	//	sendRequest(client, url, retries, ID, results)
-	//}
 
 	for {
 		select {
@@ -179,7 +206,7 @@ func scrapeWorker(retries int, workerID int, IDsChan chan int, results chan []by
 			url := fmt.Sprintf("https://xkcd.com/%d/info.0.json", ID)
 			data := sendRequest(client, url, retries, ID)
 			if data != nil {
-				ParserScore.Add(1)
+				pwg.Add(1)
 				results <- data
 			}
 
