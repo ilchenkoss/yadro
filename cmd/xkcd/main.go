@@ -16,9 +16,14 @@ type Config struct {
 	Scrape struct {
 		SourceURL        string `yaml:"source_url"`
 		ScrapePagesLimit int    `yaml:"scrape_pages_limit"`
+		RequestRetries   int    `yaml:"request_retries"`
+		Parallel         int    `yaml:"parallel"`
 	} `yaml:"scrape"`
 	Database struct {
-		DBPath string `yaml:"db_path"`
+		DBPath            string `yaml:"db_path"`
+		TempDir           string `yaml:"temp_dir"`
+		TempFolderPattern string `yaml:"temp_folder_pattern"`
+		TempFilePattern   string `yaml:"temp_file_pattern"`
 	} `yaml:"database"`
 }
 
@@ -28,14 +33,13 @@ func loadConfig(configPath string) Config {
 	file, err := os.Open(configPath)
 	if err != nil {
 		fmt.Println("Error load config:", err)
-		return Config{}
+		return Config{} //default config??
 	}
 	defer file.Close()
 
 	//decode file
 	var config Config
-	decoder := yaml.NewDecoder(file)
-	if decodeErr := decoder.Decode(&config); decodeErr != nil {
+	if decodeErr := yaml.NewDecoder(file).Decode(&config); decodeErr != nil {
 		fmt.Println("Error load config:", decodeErr)
 		return Config{}
 	}
@@ -67,8 +71,6 @@ func main() {
 	addInterruptHandling()
 
 	//parse flags
-	output := flag.Bool("o", false, "output data")
-	outputLimit := flag.Int("n", 2, "number of data output")
 	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
 	emergencyDBPath := flag.String("e", "./pkg/database/edb.json", "emergency Database path")
 
@@ -77,21 +79,40 @@ func main() {
 	// load config
 	config := loadConfig(*configPath)
 
+	//tempDirPath := database.CreateTempFolder(config.Database.TempDir, config.Database.TempFolderPattern, 0)
+	//database.FoundTemp(config.Database.TempDir, config.Database.TempFolderPattern)
+
 	//check sourceURL
 	if config.Scrape.SourceURL == "https://xkcd.com/" {
 
+		//	SourceURL        string `yaml:"source_url"`
+		//	ScrapePagesLimit int    `yaml:"scrape_pages_limit"`
+		//	RequestRetries   int    `yaml:"request_retries"`
+		//	Parallel         int    `yaml:"parallel"`
+		//} `yaml:"scrape"`
+		//Database struct {
+		//	DBPath            string `yaml:"db_path"`
+		//	TempDir           string `yaml:"temp_dir"`
+		//	TempFolderPattern string `yaml:"temp_folder_pattern"`
+		//	TempFilePattern   string `yaml:"temp_file_pattern"`
+
 		args := xkcd.OutputStruct{
-			DatabasePath: config.Database.DBPath,
-			EDBPath:      *emergencyDBPath,
-			OutputLimit:  *outputLimit,
-			OutputFlag:   *output,
-			ScrapeLimit:  config.Scrape.ScrapePagesLimit,
+			DatabasePath:      config.Database.DBPath,
+			EDBPath:           *emergencyDBPath,
+			TempDir:           config.Database.TempDir,
+			TempFolderPattern: config.Database.TempFilePattern,
+			TempFilePattern:   config.Database.TempFilePattern,
+
+			ScrapeLimit:    config.Scrape.ScrapePagesLimit,
+			RequestRetries: config.Scrape.RequestRetries,
+			Parallel:       config.Scrape.Parallel,
 		}
 
 		xkcd.Xkcd(args)
 
 	} else {
 		fmt.Printf("Указанный в config.yaml source_url='%s' нельзя обработать.", config.Scrape.SourceURL)
+
 	}
 
 }

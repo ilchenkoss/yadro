@@ -4,43 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"myapp/pkg/words"
-	"time"
 )
 
-type ResponseData struct {
-	Alt string `json:"alt"`
-	Img string `json:"img"`
-}
-type ScrapeResult struct {
-	Data      map[int]ParsedData `json:"data"`
-	BadIDs    map[int]int        `json:"badIDs"`
-	Timestamp time.Time          `json:"timestamp"`
-}
-type ParsedData struct {
-	Keywords []string `json:"keywords"`
-	Url      string   `json:"url"`
-}
+var score = 0
 
-func decodeResponse(data []byte) (ResponseData, error) {
-	var result ResponseData
-	if err := json.Unmarshal(data, &result); err != nil {
-		return ResponseData{}, err
-	}
-	return result, nil
-}
-
-func DecodeFileData(fileData []byte) ScrapeResult {
-	var data ScrapeResult
+func decodeFileData(fileData []byte) map[int]ScrapedData {
+	data := map[int]ScrapedData{}
 	if err := json.Unmarshal(fileData, &data); err != nil {
-		return ScrapeResult{
-			Data:   map[int]ParsedData{},
-			BadIDs: map[int]int{},
-		}
+		return data
 	}
 	return data
 }
 
-func codeData(bytesData ScrapeResult) []byte {
+func codeFileData(bytesData map[int]ScrapedData) []byte {
 	// Code to JSON
 	data, err := json.MarshalIndent(bytesData, "", "\t")
 	if err != nil {
@@ -49,23 +25,59 @@ func codeData(bytesData ScrapeResult) []byte {
 	return data
 }
 
-func DataToPrint(data map[int]ParsedData) string {
-	bytes, err := json.MarshalIndent(data, "", "   ")
-	if err != nil {
-		fmt.Println("Ошибка при форматировании JSON:", err)
-	}
-	return string(bytes)
+type ScrapedData struct {
+	Keywords []string `json:"keywords"`
+	Url      string   `json:"url"`
 }
+type ParsedData struct {
+	ID       int      `json:"id"`
+	Keywords []string `json:"keywords"`
+	Url      string   `json:"url"`
+}
+type ResponseData struct {
+	Alt string `json:"alt"`
+	Img string `json:"img"`
+	ID  int    `json:"num"`
+}
+
 func responseParser(data []byte) (ParsedData, error) {
 
-	result := ParsedData{}
-	if data == nil {
-		return ParsedData{}, nil
+	var response = ResponseData{}
+	err := json.Unmarshal(data, &response)
+	if err != nil {
+		return ParsedData{}, err
 	}
 
-	jsonData, err := decodeResponse(data)
-	result.Keywords = words.StringNormalization(jsonData.Alt)
-	result.Url = jsonData.Img
+	fmt.Println(response.ID)
 
-	return result, err
+	result := ParsedData{
+		ID:       response.ID,
+		Keywords: words.StringNormalization(response.Alt),
+		Url:      response.Img,
+	}
+
+	return result, nil
+}
+
+func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, resultCh chan map[int]ScrapedData, finishCh chan struct{}) {
+
+	for {
+		select {
+		case scrape := <-goodScrapesCh:
+			data, err := responseParser(scrape)
+			if err == nil {
+				dbData[data.ID] = ScrapedData{
+					Keywords: data.Keywords,
+					Url:      data.Url,
+				}
+			}
+			score++
+			fmt.Println("Score:", score)
+			ParserScore.Done()
+
+		case <-finishCh:
+			resultCh <- dbData
+			return
+		}
+	}
 }
