@@ -58,7 +58,7 @@ func addInterruptHandling() {
 		<-sign
 		//change condition
 		scraper.Condition = false
-		fmt.Println("Interrupt. Stopping scrape...")
+		fmt.Println("\nInterrupt. Stopping scrape...")
 
 		//add emergency exit
 		time.Sleep(10 * time.Second)

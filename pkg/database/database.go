@@ -26,7 +26,6 @@ type Temp struct {
 }
 
 func FoundTemp(tempDirPath string, tempFolderPattern string, tempFilePattern string) Temp {
-	//есть вариант хранить имена папок в отдельном файле, но не хочется хламить
 	var tempIDs []int
 	tempPaths := make(map[string][]string)
 	temp := Temp{

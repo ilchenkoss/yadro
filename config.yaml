@@ -2,7 +2,8 @@ scrape:
   source_url: "https://xkcd.com/"
   scrape_pages_limit: -1   # -1 -> all pages
   request_retries: 3
-  parallel : 100
+  parallel : 50
+
 database:
   db_path : "./pkg/database/database.json"
   temp_dir : "./pkg/database/"

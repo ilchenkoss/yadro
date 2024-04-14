@@ -6,7 +6,6 @@ import (
 	"myapp/pkg/database"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,7 +40,13 @@ func findIDs(data map[int]ScrapedData, tempedIDs []int) (int, []int) {
 		}
 	}
 
-	fmt.Println(missingIDs)
+	if 0 > len(missingIDs) && len(missingIDs) < 10 {
+		fmt.Printf("Потерянные ID: %v", missingIDs)
+	}
+
+	if len(missingIDs) >= 10 {
+		fmt.Printf("Missed IDs: %v ...and..more..\n", missingIDs[:10])
+	}
 
 	return maxID + 1, missingIDs
 }
@@ -67,27 +72,22 @@ func Scrape(dbPath string,
 
 	//scrape new data
 	startTime := time.Now()
-	scrapedData, newTempFolders := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern, tempFilePattern, temp.TempPaths)
+	scrapedData, actualTempPath := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern, tempFilePattern, temp.TempPaths)
 	endTime := time.Now()
 	fmt.Printf("Scrape time: %v\n", endTime.Sub(startTime))
-
-	//100 потоков 6.74
 
 	//write last data
 	scrapedDataBytes := codeFileData(scrapedData)
 	dbErr := database.WriteData(dbPath, eDBPath, scrapedDataBytes)
 
 	if dbErr == nil {
-		fmt.Println("Данные успешно сохранены.")
+		fmt.Println("Data successfully saved.")
 		//remove temps
-		for oldTempFoldersName := range temp.TempPaths {
-			os.RemoveAll(oldTempFoldersName)
+		for oldTempPath := range temp.TempPaths {
+			os.RemoveAll(oldTempPath)
 		}
-		for _, newTempFoldersName := range newTempFolders {
-			os.RemoveAll(newTempFoldersName)
-		}
+		os.RemoveAll(actualTempPath)
 	}
-
 	return
 }
 
@@ -121,7 +121,7 @@ func ScrapePuppeteer(parallel int,
 	tempDirPath string,
 	tempFolderPattern string,
 	tempFilePattern string,
-	existedTempFiles map[string][]string) (map[int]ScrapedData, []string) {
+	existedTempFiles map[string][]string) (map[int]ScrapedData, string) {
 
 	// Create buffered channels for jobs and results
 	jobs := make(chan int, 1)
@@ -129,7 +129,7 @@ func ScrapePuppeteer(parallel int,
 	resultCh := make(chan map[int]ScrapedData, 1)
 	finishScrapeCh := make(chan struct{})
 
-	//create temp folder
+	// Create temp folder
 	actualTempFolder := database.CreateTempFolder(tempDirPath, tempFolderPattern)
 
 	// Set scraper WaitGroup
@@ -171,17 +171,16 @@ func ScrapePuppeteer(parallel int,
 	}()
 
 	// Process results
-	result := make(map[int]ScrapedData)
+	var result = make(map[int]ScrapedData)
 
 	for res := range resultCh {
 		result = res
 		close(resultCh)
 	}
 
-	return result, []string{actualTempFolder}
+	return result, actualTempFolder
 }
 
-// worker performs the task on jobs received and sends results to the results channel.
 func scrapeWorker(retries int,
 	workerID int,
 	IDsChan chan int,
@@ -192,15 +191,14 @@ func scrapeWorker(retries int,
 	actualTempFolder string,
 	tempFilePattern string) {
 
-	client := http.Client{Timeout: time.Duration(1) * time.Second} //scrape client
-	//we need client for any worker, because we change timeout time
+	client := http.Client{Timeout: time.Duration(1) * time.Second}
 
 	for {
 		select {
 		case ID := <-IDsChan:
-			fmt.Println("Scrape status: workerID:", workerID, "requestID:", ID)
+			fmt.Printf("Scrape status:\nworkerID: %d, requestID: %d\n", workerID, ID)
 			url := fmt.Sprintf("https://xkcd.com/%d/info.0.json", ID)
-			data := sendRequest(client, url, retries, ID)
+			data := sendRequest(&client, url, retries, ID)
 			if data != nil {
 				pwg.Add(1)
 				database.SaveTemp(data, actualTempFolder, tempFilePattern, ID)
@@ -214,14 +212,11 @@ func scrapeWorker(retries int,
 	}
 }
 
-func sendRequest(client http.Client, url string, retries int, ID int) []byte {
+func sendRequest(client *http.Client, url string, retries int, ID int) []byte {
 
-	if retries <= 0 || !Condition { //exit from recursion
-		fmt.Println("exit retries end")
+	if retries <= 0 { //exit from recursion
 		return nil
 	}
-
-	fmt.Println("id: " + strconv.Itoa(ID) + ", retries: " + strconv.Itoa(retries))
 
 	resp, err := client.Get(url)
 
@@ -240,7 +235,6 @@ func sendRequest(client http.Client, url string, retries int, ID int) []byte {
 	//response ok
 	if resp.StatusCode == http.StatusOK {
 
-		client.Timeout = 1 // reset timeout
 		body, errRead := io.ReadAll(resp.Body)
 		if errRead != nil {
 			sendRequest(client, url, retries-1, ID)
@@ -248,11 +242,9 @@ func sendRequest(client http.Client, url string, retries int, ID int) []byte {
 		}
 
 		return body
-		//need add temp file
 	}
 
 	if resp.StatusCode != http.StatusNotFound { //response not ok
-		client.Timeout = 5 //add time to response
 		sendRequest(client, url, retries-1, ID)
 		return nil
 	}

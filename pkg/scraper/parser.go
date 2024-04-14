@@ -15,7 +15,6 @@ func decodeFileData(fileData []byte) map[int]ScrapedData {
 }
 
 func codeFileData(bytesData map[int]ScrapedData) []byte {
-	// Code to JSON
 	data, err := json.MarshalIndent(bytesData, "", "\t")
 	if err != nil {
 		return nil
