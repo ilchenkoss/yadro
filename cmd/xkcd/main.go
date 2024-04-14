@@ -42,7 +42,8 @@ func loadConfig(configPath string) Config {
 	var config Config
 	if decodeErr := yaml.NewDecoder(file).Decode(&config); decodeErr != nil {
 		fmt.Println("Error load config:", decodeErr)
-		return Config{}
+		//return Config{} //default config??
+		panic(decodeErr)
 	}
 
 	return config
