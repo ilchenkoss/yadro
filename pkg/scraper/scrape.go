@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var Condition = true //interrupt
+var Condition = true //interrupt or comics end
 
 func findIDs(data map[int]ScrapedData, tempedIDs []int) (int, []int) {
 	var maxID int
