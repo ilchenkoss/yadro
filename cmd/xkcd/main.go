@@ -33,7 +33,8 @@ func loadConfig(configPath string) Config {
 	file, err := os.Open(configPath)
 	if err != nil {
 		fmt.Println("Error load config:", err)
-		return Config{} //default config??
+		//return Config{} //default config??
+		panic(err)
 	}
 	defer file.Close()
 
