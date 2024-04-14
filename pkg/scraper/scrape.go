@@ -6,7 +6,6 @@ import (
 	"myapp/pkg/database"
 	"net/http"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,31 +14,34 @@ import (
 
 var Condition = true //interrupt
 
-func findIDs(data map[int]ScrapedData) (int, []int) {
-
+func findIDs(data map[int]ScrapedData, tempedIDs []int) (int, []int) {
 	var maxID int
-	var IDs []int
 	var missingIDs []int
+	existingIDs := make(map[int]bool)
 
 	for key := range data {
-		IDs = append(IDs, key)
+		existingIDs[key] = true
 	}
 
-	sort.Ints(IDs)
-
-	if len(IDs) > 0 {
-		maxID = IDs[len(IDs)-1]
-	} else {
-		maxID = 0
-	}
-
-	for i := 1; i < len(IDs); i++ {
-		if IDs[i]-IDs[i-1] > 1 {
-			for j := IDs[i-1] + 1; j < IDs[i]; j++ {
-				missingIDs = append(missingIDs, j)
-			}
+	for _, tempedID := range tempedIDs {
+		if !existingIDs[tempedID] {
+			missingIDs = append(missingIDs, tempedID)
 		}
 	}
+
+	for id := range existingIDs {
+		if id > maxID {
+			maxID = id
+		}
+	}
+
+	for i := 1; i <= maxID; i++ {
+		if !existingIDs[i] && i != 404 { // funny ID
+			missingIDs = append(missingIDs, i)
+		}
+	}
+
+	fmt.Println(missingIDs)
 
 	return maxID + 1, missingIDs
 }
@@ -51,45 +53,42 @@ func Scrape(dbPath string,
 	tempFilePattern string,
 	scrapeLimit int,
 	requestRetries int,
-	parallel int) error {
-
-	//check temp files
-	tempFolders := database.FoundTemp(tempDirPath, tempFolderPattern)
-	if len(tempFolders) > 0 {
-		//parser and append
-		fmt.Println("temp exists")
-	}
+	parallel int) {
 
 	//data from db
 	dbDataBytes := database.ReadBytesFromFile(dbPath)
 	dbData := decodeFileData(dbDataBytes)
 
+	//check temp files
+	temp := database.FoundTemp(tempDirPath, tempFolderPattern, tempFilePattern)
+
 	//choose ID, where stopped last scrape; get missedIDs
-	startID, missedIDs := findIDs(dbData)
+	startID, missedIDs := findIDs(dbData, temp.TempIDs)
 
 	//scrape new data
-	scrapedData, newTempFolders := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern)
+	startTime := time.Now()
+	scrapedData, newTempFolders := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern, tempFilePattern, temp.TempPaths)
+	endTime := time.Now()
+	fmt.Printf("Scrape time: %v\n", endTime.Sub(startTime))
+
+	//100 потоков 6.74
 
 	//write last data
 	scrapedDataBytes := codeFileData(scrapedData)
 	dbErr := database.WriteData(dbPath, eDBPath, scrapedDataBytes)
 
 	if dbErr == nil {
+		fmt.Println("Данные успешно сохранены.")
 		//remove temps
-		for oldTempFoldersName := range tempFolders {
-			os.Remove(tempDirPath + oldTempFoldersName)
+		for oldTempFoldersName := range temp.TempPaths {
+			os.RemoveAll(oldTempFoldersName)
 		}
 		for _, newTempFoldersName := range newTempFolders {
-			fmt.Println(newTempFoldersName)
-			//КОСТЫЛЬ
-			if len(newTempFoldersName) > 0 {
-				os.Remove(newTempFoldersName)
-			}
+			os.RemoveAll(newTempFoldersName)
 		}
 	}
-	fmt.Println(dbErr)
 
-	return nil
+	return
 }
 
 func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, finishScrapeCh chan struct{}) {
@@ -105,9 +104,7 @@ func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, fin
 
 	//generate IDs++
 	for Condition && scrapeLimit != 0 {
-		fmt.Println(scrapeLimit, startID)
 		jobs <- startID
-		fmt.Println("ID", startID)
 		startID++
 		scrapeLimit--
 	}
@@ -115,7 +112,16 @@ func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, fin
 	return
 }
 
-func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, scrapeLimit int, dbData map[int]ScrapedData, tempDirPath string, tempFolderPattern string) (map[int]ScrapedData, []string) {
+func ScrapePuppeteer(parallel int,
+	retries int,
+	startID int,
+	missedIDs []int,
+	scrapeLimit int,
+	dbData map[int]ScrapedData,
+	tempDirPath string,
+	tempFolderPattern string,
+	tempFilePattern string,
+	existedTempFiles map[string][]string) (map[int]ScrapedData, []string) {
 
 	// Create buffered channels for jobs and results
 	jobs := make(chan int, 1)
@@ -123,7 +129,8 @@ func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, sc
 	resultCh := make(chan map[int]ScrapedData, 1)
 	finishScrapeCh := make(chan struct{})
 
-	tempDirsCh := make(chan string, parallel)
+	//create temp folder
+	actualTempFolder := database.CreateTempFolder(tempDirPath, tempFolderPattern)
 
 	// Set scraper WaitGroup
 	var swg sync.WaitGroup
@@ -134,10 +141,20 @@ func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, sc
 
 	// Create scrape worker goroutines
 	for sworker := 1; sworker <= parallel; sworker++ {
-		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, finishScrapeCh, tempDirPath, tempFolderPattern, tempDirsCh)
+		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, finishScrapeCh, actualTempFolder, tempFilePattern)
 	}
 
 	// Append temped response
+	go func() {
+		for tempFolder, tempFiles := range existedTempFiles {
+			for _, tempFile := range tempFiles {
+				pwg.Add(1)
+				filePath := fmt.Sprintf("%s/%s", tempFolder, tempFile)
+				tempData := database.ReadBytesFromFile(filePath)
+				goodScrapesCh <- tempData
+			}
+		}
+	}()
 
 	// Create parser worker
 	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh)
@@ -153,28 +170,15 @@ func ScrapePuppeteer(parallel int, retries int, startID int, missedIDs []int, sc
 		close(goodScrapesCh)
 	}()
 
-	//костыль
-	var tempDirsSlice []string
-	go func() {
-		for {
-			select {
-			case tempDir := <-tempDirsCh:
-				tempDirsSlice = append(tempDirsSlice, tempDir)
-			}
-
-		}
-	}()
-
 	// Process results
 	result := make(map[int]ScrapedData)
 
 	for res := range resultCh {
 		result = res
 		close(resultCh)
-		close(tempDirsCh)
 	}
 
-	return result, tempDirsSlice
+	return result, []string{actualTempFolder}
 }
 
 // worker performs the task on jobs received and sends results to the results channel.
@@ -185,16 +189,8 @@ func scrapeWorker(retries int,
 	swg *sync.WaitGroup,
 	pwg *sync.WaitGroup,
 	finishScrapeCh chan struct{},
-	tempDirPath string,
-	tempFolderPattern string,
-	tempFoldersCh chan string) {
-
-	//переместить в место создание воркеров
-	//create temp folder
-	fmt.Println("create temp")
-	tempFolder := database.CreateTempFolder(tempDirPath, tempFolderPattern, workerID)
-	fmt.Println("after temp")
-	tempFoldersCh <- tempFolder
+	actualTempFolder string,
+	tempFilePattern string) {
 
 	client := http.Client{Timeout: time.Duration(1) * time.Second} //scrape client
 	//we need client for any worker, because we change timeout time
@@ -207,6 +203,7 @@ func scrapeWorker(retries int,
 			data := sendRequest(client, url, retries, ID)
 			if data != nil {
 				pwg.Add(1)
+				database.SaveTemp(data, actualTempFolder, tempFilePattern, ID)
 				results <- data
 			}
 
@@ -224,11 +221,9 @@ func sendRequest(client http.Client, url string, retries int, ID int) []byte {
 		return nil
 	}
 
-	println("id: " + strconv.Itoa(ID) + ", retries: " + strconv.Itoa(retries))
+	fmt.Println("id: " + strconv.Itoa(ID) + ", retries: " + strconv.Itoa(retries))
 
 	resp, err := client.Get(url)
-
-	fmt.Println(resp.StatusCode)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "no such host") {
@@ -259,7 +254,6 @@ func sendRequest(client http.Client, url string, retries int, ID int) []byte {
 	if resp.StatusCode != http.StatusNotFound { //response not ok
 		client.Timeout = 5 //add time to response
 		sendRequest(client, url, retries-1, ID)
-		fmt.Println(resp.StatusCode)
 		return nil
 	}
 
@@ -268,7 +262,6 @@ func sendRequest(client http.Client, url string, retries int, ID int) []byte {
 	}
 
 	if ID != 404 { // if statusCode == 404 and id != 404
-		fmt.Println("here??")
 		Condition = false //comics end
 		return nil
 	}

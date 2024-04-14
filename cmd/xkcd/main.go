@@ -79,28 +79,14 @@ func main() {
 	// load config
 	config := loadConfig(*configPath)
 
-	//tempDirPath := database.CreateTempFolder(config.Database.TempDir, config.Database.TempFolderPattern, 0)
-	//database.FoundTemp(config.Database.TempDir, config.Database.TempFolderPattern)
-
 	//check sourceURL
 	if config.Scrape.SourceURL == "https://xkcd.com/" {
-
-		//	SourceURL        string `yaml:"source_url"`
-		//	ScrapePagesLimit int    `yaml:"scrape_pages_limit"`
-		//	RequestRetries   int    `yaml:"request_retries"`
-		//	Parallel         int    `yaml:"parallel"`
-		//} `yaml:"scrape"`
-		//Database struct {
-		//	DBPath            string `yaml:"db_path"`
-		//	TempDir           string `yaml:"temp_dir"`
-		//	TempFolderPattern string `yaml:"temp_folder_pattern"`
-		//	TempFilePattern   string `yaml:"temp_file_pattern"`
 
 		args := xkcd.OutputStruct{
 			DatabasePath:      config.Database.DBPath,
 			EDBPath:           *emergencyDBPath,
 			TempDir:           config.Database.TempDir,
-			TempFolderPattern: config.Database.TempFilePattern,
+			TempFolderPattern: config.Database.TempFolderPattern,
 			TempFilePattern:   config.Database.TempFilePattern,
 
 			ScrapeLimit:    config.Scrape.ScrapePagesLimit,

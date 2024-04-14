@@ -7,35 +7,55 @@ import (
 	"strings"
 )
 
-func CreateTempFolder(tempDirPath string, tempFolderPattern string, goroutineID int) string {
-	//не уверен что темп не перезапишет самого себя, поэтому добавил айди горутины
-	tempFolderGoroutinePattern := tempFolderPattern + "-" + strconv.Itoa(goroutineID) + "-"
-	tempDirPathResult, err := os.MkdirTemp(tempDirPath, tempFolderGoroutinePattern)
+func CreateTempFolder(tempDirPath string, tempFolderPattern string) string {
+	tempDirPathResult, err := os.MkdirTemp(tempDirPath, tempFolderPattern)
 	if err != nil {
 		fmt.Println("Error from create temp dir:", err)
 		return ""
 	}
-
 	return tempDirPathResult
 }
 
-func FoundTemp(tempDirPath string, tempFolderPattern string) map[string][]string {
-	//есть вариант хранить имена папок в отдельном файле, но не хочется хламить
+func SaveTemp(data []byte, tempFolderPath string, tempFilePattern string, ID int) {
+	os.CreateTemp(tempFolderPath, fmt.Sprintf("%s%d-", tempFilePattern, ID))
+}
 
-	tempFolders := map[string][]string{} //key tempfolder, value filenames
+type Temp struct {
+	TempPaths map[string][]string
+	TempIDs   []int
+}
+
+func FoundTemp(tempDirPath string, tempFolderPattern string, tempFilePattern string) Temp {
+	//есть вариант хранить имена папок в отдельном файле, но не хочется хламить
+	var tempIDs []int
+	tempPaths := make(map[string][]string)
+	temp := Temp{
+		TempIDs:   tempIDs,
+		TempPaths: tempPaths,
+	}
 
 	folders, err := os.ReadDir(tempDirPath)
 	if err != nil {
 		fmt.Println("Error of reading temp dir:", err)
-		return tempFolders
+		return temp
 	}
 	for _, folder := range folders {
 		if folder.IsDir() && strings.HasPrefix(folder.Name(), tempFolderPattern) {
-			tempFolders[folder.Name()] = FoundTempFiles(tempDirPath + "/" + folder.Name())
+			tempFolderPath := fmt.Sprintf("%s%s", tempDirPath, folder.Name())
+			tempFiles := FoundTempFiles(tempFolderPath)
+			temp.TempPaths[tempFolderPath] = tempFiles
+
+			for _, tempFileName := range tempFiles {
+				fileNameWithoutPattern := strings.Split(tempFileName, tempFilePattern)[1]
+				fileIDString := strings.Split(fileNameWithoutPattern, "-")[0]
+				fileID, strToIntErr := strconv.Atoi(fileIDString)
+				if strToIntErr == nil {
+					temp.TempIDs = append(temp.TempIDs, fileID)
+				}
+			}
 		}
 	}
-	fmt.Println(len(tempFolders))
-	return tempFolders
+	return temp
 }
 
 func FoundTempFiles(tempDirPath string) []string {

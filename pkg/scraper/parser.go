@@ -2,12 +2,9 @@ package scraper
 
 import (
 	"encoding/json"
-	"fmt"
 	"myapp/pkg/words"
 	"sync"
 )
-
-var score = 0
 
 func decodeFileData(fileData []byte) map[int]ScrapedData {
 	data := map[int]ScrapedData{}
@@ -49,8 +46,6 @@ func responseParser(data []byte) (ParsedData, error) {
 		return ParsedData{}, err
 	}
 
-	fmt.Println(response.ID)
-
 	result := ParsedData{
 		ID:       response.ID,
 		Keywords: words.StringNormalization(response.Alt),
@@ -70,8 +65,6 @@ func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, pwg *sy
 				Url:      data.Url,
 			}
 		}
-		score++
-		fmt.Println("Score:", score)
 		pwg.Done()
 	}
 	resultCh <- dbData
