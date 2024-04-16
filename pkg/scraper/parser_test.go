@@ -13,7 +13,7 @@ func TestParser(t *testing.T) {
 
 	x := ParsedData{
 		ID:       10,
-		Keywords: []string{"famous", "draw", "one", "first", "site"},
+		Keywords: map[string]int{"famous": 1, "draw": 1, "one": 1, "first": 1, "site": 1},
 		Url:      "https://imgs.xkcd.com/comics/pi.jpg",
 	}
 
@@ -33,11 +33,11 @@ func TestParserWorker(t *testing.T) {
 
 	wantResult := map[int]ScrapedData{
 		10: {
-			Keywords: []string{"famous", "draw", "one", "first", "site"},
+			Keywords: map[string]int{"famous": 1, "draw": 1, "one": 1, "first": 1, "site": 1},
 			Url:      "https://imgs.xkcd.com/comics/pi.jpg",
 		},
 		3: {
-			Keywords: []string{"hello", "island"},
+			Keywords: map[string]int{"hello": 1, "island": 1},
 			Url:      "https://imgs.xkcd.com/comics/island_color.jpg",
 		},
 	}

@@ -21,18 +21,22 @@ func CleanWord(uncleanedWord string) string {
 
 }
 
-func stemming(notNormalizedString []string) []string {
+func stemming(notNormalizedString []string) map[string]int {
 
 	duplicateContainer := make(map[string]bool)
-	var stemmedWords []string
+	stemmedWords := make(map[string]int)
 
 	for _, word := range notNormalizedString {
 		var stemmedWord, err = snowball.Stem(word, "english", true)
 
 		//uniqueness
-		if err == nil && !duplicateContainer[stemmedWord] {
+		if err == nil {
+			if duplicateContainer[stemmedWord] {
+				stemmedWords[stemmedWord]++
+				continue
+			}
 			duplicateContainer[stemmedWord] = true
-			stemmedWords = append(stemmedWords, stemmedWord)
+			stemmedWords[stemmedWord] = 1
 		}
 	}
 
@@ -69,7 +73,7 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 
 }
 
-func StringNormalization(inputString string) []string {
+func StringNormalization(inputString string) map[string]int {
 
 	//parse string
 	stringFields := strings.Fields(inputString)
