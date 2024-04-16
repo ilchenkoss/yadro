@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func decodeFileData(fileData []byte) map[int]ScrapedData {
+func DecodeFileData(fileData []byte) map[int]ScrapedData {
 	data := map[int]ScrapedData{}
 	if err := json.Unmarshal(fileData, &data); err != nil {
 		return data

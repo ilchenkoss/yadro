@@ -2,6 +2,7 @@ package xkcd
 
 import (
 	"context"
+	"myapp/pkg/indexing"
 	"myapp/pkg/scraper"
 )
 
@@ -18,6 +19,8 @@ type OutputStruct struct {
 
 	ScrapeCtx       context.Context
 	ScrapeCtxCancel context.CancelFunc
+
+	StringRequest string
 }
 
 func Xkcd(args OutputStruct) {
@@ -33,4 +36,5 @@ func Xkcd(args OutputStruct) {
 		args.ScrapeCtx,
 		args.ScrapeCtxCancel)
 
+	indexing.MainIndexing(args.StringRequest)
 }

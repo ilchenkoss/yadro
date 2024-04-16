@@ -76,6 +76,7 @@ func main() {
 	//parse flags
 	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
 	emergencyDBPath := flag.String("e", "./pkg/database/edb.json", "emergency Database path")
+	stringRequest := flag.String("s", "", "string for your request")
 
 	flag.Parse()
 
@@ -98,6 +99,7 @@ func main() {
 
 			ScrapeCtx:       scrapeCtx,
 			ScrapeCtxCancel: scrapeCtxCancel,
+			StringRequest:   *stringRequest,
 		}
 
 		xkcd.Xkcd(args)

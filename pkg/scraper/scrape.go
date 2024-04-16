@@ -38,7 +38,7 @@ func Scrape(dbPath string,
 
 	//data from db
 	dbDataBytes := database.ReadBytesFromFile(dbPath)
-	dbData := decodeFileData(dbDataBytes)
+	dbData := DecodeFileData(dbDataBytes)
 
 	//check temp files
 	temp := database.FoundTemp(tempDirPath, tempFolderPattern, tempFilePattern)

@@ -82,12 +82,12 @@ func ReadBytesFromFile(filePath string) []byte {
 func WriteData(filePath string, eDBpath string, data []byte) error {
 
 	//try to write data in main db file
-	err := writeToFile(filePath, data, false)
+	err := WriteToFile(filePath, data, false)
 
 	if err != nil {
 
 		//try to write data in emergency db file
-		err = writeToFile(eDBpath, data, true)
+		err = WriteToFile(eDBpath, data, true)
 
 		if err != nil {
 			fmt.Println("Все потеряно, данные не записаны:", err)
@@ -97,7 +97,7 @@ func WriteData(filePath string, eDBpath string, data []byte) error {
 	return nil
 }
 
-func writeToFile(filePath string, data []byte, emergency bool) error {
+func WriteToFile(filePath string, data []byte, emergency bool) error {
 
 	// Open or create database file
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
