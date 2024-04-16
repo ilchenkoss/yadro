@@ -43,14 +43,17 @@ func Scrape(dbPath string,
 	//check temp files
 	temp := database.FoundTemp(tempDirPath, tempFolderPattern, tempFilePattern)
 
-	//choose ID, where stopped last scrape; get existIDs
+	//get existIDs
 	existIDs := findExistIDs(dbData, temp.TempIDs)
+
+	// Create temp folder
+	actualTempPath := database.CreateTempFolder(tempDirPath, tempFolderPattern)
 
 	//scrape new data
 	startTime := time.Now()
-	scrapedData, actualTempPath := ScrapePuppeteer(parallel, requestRetries, existIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
+	scrapedData := ScrapePuppeteer(parallel, requestRetries, existIDs, scrapeLimit, dbData, actualTempPath, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
 	endTime := time.Now()
-	fmt.Printf("Scrape time: %v\n", endTime.Sub(startTime))
+	fmt.Printf("\nScrape time: %v\n", endTime.Sub(startTime))
 
 	//write last data
 	scrapedDataBytes := codeFileData(scrapedData)
@@ -93,20 +96,16 @@ func ScrapePuppeteer(parallel int,
 	existIDs map[int]bool,
 	scrapeLimit int,
 	dbData map[int]ScrapedData,
-	tempDirPath string,
-	tempFolderPattern string,
+	actualTempPath string,
 	tempFilePattern string,
 	existedTempFiles map[string][]string,
 	scrapeCtx context.Context,
-	scrapeCtxCancel context.CancelFunc) (map[int]ScrapedData, string) {
+	scrapeCtxCancel context.CancelFunc) map[int]ScrapedData {
 
 	// Create buffered channels for jobs and results
 	jobs := make(chan int, 1)
 	goodScrapesCh := make(chan []byte, 1)
 	resultCh := make(chan map[int]ScrapedData, 1)
-
-	// Create temp folder
-	actualTempFolder := database.CreateTempFolder(tempDirPath, tempFolderPattern)
 
 	// Set scraper WaitGroup
 	var swg sync.WaitGroup
@@ -117,7 +116,7 @@ func ScrapePuppeteer(parallel int,
 
 	// Create scrape worker goroutines
 	for sworker := 1; sworker <= parallel; sworker++ {
-		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, scrapeCtx, actualTempFolder, tempFilePattern, scrapeCtxCancel)
+		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, scrapeCtx, actualTempPath, tempFilePattern, scrapeCtxCancel)
 	}
 
 	// Append temped response
@@ -150,7 +149,9 @@ func ScrapePuppeteer(parallel int,
 	result := <-resultCh
 	close(resultCh)
 
-	return result, actualTempFolder
+	fmt.Printf("\nsuccessful results collected: %d", len(result))
+
+	return result
 }
 
 func scrapeWorker(retries int,
