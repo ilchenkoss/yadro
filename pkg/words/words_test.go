@@ -52,7 +52,7 @@ func comparisonSlices(expected []string, actual []string) (bool, map[string][]st
 func TestExample1(t *testing.T) {
 
 	notNormalizedString := "follower brings bunch of questions!"
-	expected := map[string]int{"follow": 1, "bunch": 1, "bring": 1, "question": 1}
+	expected := map[string]KeywordsInfo{"follow": {1, 0}, "bunch": {1, 2}, "bring": {1, 1}, "question": {1, 3}}
 	actual := StringNormalization(notNormalizedString)
 
 	if !reflect.DeepEqual(expected, actual) {
@@ -63,7 +63,7 @@ func TestExample1(t *testing.T) {
 func TestExample2(t *testing.T) {
 
 	notNormalizedString := "i'll follow you as long as you are following me"
-	expected := map[string]int{"follow": 2, "long": 1}
+	expected := map[string]KeywordsInfo{"follow": {2, 0}, "long": {1, 1}}
 	actual := StringNormalization(notNormalizedString)
 
 	if !reflect.DeepEqual(expected, actual) {
@@ -74,7 +74,7 @@ func TestExample2(t *testing.T) {
 func TestEmpty(t *testing.T) {
 
 	notNormalizedString := ""
-	expected := make(map[string]int)
+	expected := make(map[string]KeywordsInfo)
 	actual := StringNormalization(notNormalizedString)
 
 	if !reflect.DeepEqual(expected, actual) {
@@ -85,7 +85,7 @@ func TestEmpty(t *testing.T) {
 func TestDuplicate(t *testing.T) {
 
 	notNormalizedString := "follow following, follower with followers"
-	expected := map[string]int{"follow": 4}
+	expected := map[string]KeywordsInfo{"follow": {4, 0}}
 	actual := StringNormalization(notNormalizedString)
 
 	if !reflect.DeepEqual(expected, actual) {

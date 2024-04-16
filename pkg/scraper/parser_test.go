@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"myapp/pkg/words"
 	"reflect"
 	"sync"
 	"testing"
@@ -13,7 +14,7 @@ func TestParser(t *testing.T) {
 
 	x := ParsedData{
 		ID:       10,
-		Keywords: map[string]int{"famous": 1, "draw": 1, "one": 1, "first": 1, "site": 1},
+		Keywords: map[string]words.KeywordsInfo{"famous": {1, 0}, "draw": {1, 1}, "one": {1, 2}, "first": {1, 3}, "site": {1, 4}},
 		Url:      "https://imgs.xkcd.com/comics/pi.jpg",
 	}
 
@@ -33,11 +34,11 @@ func TestParserWorker(t *testing.T) {
 
 	wantResult := map[int]ScrapedData{
 		10: {
-			Keywords: map[string]int{"famous": 1, "draw": 1, "one": 1, "first": 1, "site": 1},
+			Keywords: map[string]words.KeywordsInfo{"famous": {1, 0}, "draw": {1, 1}, "one": {1, 2}, "first": {1, 3}, "site": {1, 4}},
 			Url:      "https://imgs.xkcd.com/comics/pi.jpg",
 		},
 		3: {
-			Keywords: map[string]int{"hello": 1, "island": 1},
+			Keywords: map[string]words.KeywordsInfo{"hello": {1, 0}, "island": {1, 1}},
 			Url:      "https://imgs.xkcd.com/comics/island_color.jpg",
 		},
 	}

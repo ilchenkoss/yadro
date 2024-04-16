@@ -23,13 +23,13 @@ func codeFileData(bytesData map[int]ScrapedData) []byte {
 }
 
 type ScrapedData struct {
-	Keywords map[string]int `json:"keywords"`
-	Url      string         `json:"url"`
+	Keywords map[string]words.KeywordsInfo `json:"keywords"`
+	Url      string                        `json:"url"`
 }
 type ParsedData struct {
-	ID       int            `json:"id"`
-	Keywords map[string]int `json:"keywords"`
-	Url      string         `json:"url"`
+	ID       int                           `json:"id"`
+	Keywords map[string]words.KeywordsInfo `json:"keywords"`
+	Url      string                        `json:"url"`
 }
 type ResponseData struct {
 	Alt string `json:"alt"`
