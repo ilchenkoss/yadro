@@ -57,11 +57,8 @@ func TestParserWorker(t *testing.T) {
 	pwg.Wait()
 	close(goodScrapesCh)
 
-	result := make(map[int]ScrapedData)
-	for r := range resultCh {
-		result = r
-		close(resultCh)
-	}
+	result := <-resultCh
+	close(resultCh)
 
 	if !reflect.DeepEqual(result, wantResult) {
 		t.Error("\nResult was incorrect")
