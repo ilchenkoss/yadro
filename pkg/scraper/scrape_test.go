@@ -1,83 +1,69 @@
 package scraper
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestRequestOK(t *testing.T) {
+func testRequst(wantStatusCode int, ctxCancel context.CancelFunc, ID int) []byte {
 	// create fake http server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		w.WriteHeader(http.StatusOK)     //status code
+		w.WriteHeader(wantStatusCode)    //status code
 		w.Write([]byte("Hello, world!")) //body
 
 	}))
 
-	defer server.Close()
+	response := sendRequest(server.Client(), server.URL, 3, ID, ctxCancel)
+	return response
+}
 
-	response := sendRequest(server.Client(), server.URL, 3, 100)
+func TestRequestOK(t *testing.T) {
 
-	if string(response) != "Hello, world!" {
-		t.Errorf("unexpected response body: got %s, want %s", response, "Hello, world!")
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	response := testRequst(http.StatusOK, ctxCancel, 100)
+
+	if ctx.Err() != nil {
+		t.Errorf("Context closed, but comics dont end")
+	}
+
+	if response == nil {
+		t.Errorf("Response do not return, but it shouldn't have")
 	}
 }
 
 func TestRequestNotOK(t *testing.T) {
-	// create fake http server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		w.WriteHeader(http.StatusInternalServerError) //status code
-		w.Write([]byte("Hello, world!"))              //body
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	response := testRequst(http.StatusInternalServerError, ctxCancel, 100)
 
-	}))
-
-	defer server.Close()
-
-	response := sendRequest(server.Client(), server.URL, 3, 100)
+	if ctx.Err() != nil {
+		t.Errorf("Context closed, but comics dont end")
+	}
 
 	if response != nil {
-		t.Errorf("unexpected response body: got %s, want %s", response, "nil")
+		t.Errorf("Response return, but it shouldn't have")
 	}
 }
 
-func TestRequestChangeGlobalVar(t *testing.T) {
-	// create fake http server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestResponseCLoseContext(t *testing.T) {
 
-		w.WriteHeader(http.StatusNotFound) //status code
-		w.Write([]byte("Hello, world!"))   //body
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	testRequst(http.StatusNotFound, ctxCancel, 999)
 
-	}))
-
-	defer server.Close()
-
-	Condition = true
-
-	response := sendRequest(server.Client(), server.URL, 3, 405)
-
-	if Condition != false {
-		t.Errorf("unexpected response body: got %s, want %s", response, "nil")
+	if ctx.Err() == nil {
+		t.Errorf("Context not closed, but comics end")
 	}
 }
 
-func TestRequestFunny404(t *testing.T) {
-	// create fake http server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestResponseFunnyComics(t *testing.T) {
 
-		w.WriteHeader(http.StatusNotFound) //status code
-		w.Write([]byte("Hello, world!"))   //body
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	testRequst(http.StatusNotFound, ctxCancel, 404)
 
-	}))
-
-	defer server.Close()
-
-	Condition = true
-
-	response := sendRequest(server.Client(), server.URL, 3, 404)
-
-	if Condition != true {
-		t.Errorf("unexpected response body: got %s, want %s", response, "nil")
+	if ctx.Err() != nil {
+		t.Errorf("Context not closed, but comics end")
 	}
 }
