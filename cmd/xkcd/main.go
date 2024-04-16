@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"myapp/pkg/scraper"
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
@@ -49,7 +49,7 @@ func loadConfig(configPath string) Config {
 	return config
 }
 
-func addInterruptHandling() {
+func addInterruptHandling(ScrapeCtxCancel context.CancelFunc) {
 	sign := make(chan os.Signal, 1)
 
 	//select incoming signals
@@ -59,7 +59,7 @@ func addInterruptHandling() {
 		//wait interrupt
 		<-sign
 		//change condition
-		scraper.Condition = false
+		ScrapeCtxCancel()
 		fmt.Println("\nInterrupt. Stopping scrape...")
 
 		//add emergency exit
@@ -70,7 +70,8 @@ func addInterruptHandling() {
 
 func main() {
 
-	addInterruptHandling()
+	scrapeCtx, scrapeCtxCancel := context.WithCancel(context.Background())
+	addInterruptHandling(scrapeCtxCancel)
 
 	//parse flags
 	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
@@ -94,6 +95,9 @@ func main() {
 			ScrapeLimit:    config.Scrape.ScrapePagesLimit,
 			RequestRetries: config.Scrape.RequestRetries,
 			Parallel:       config.Scrape.Parallel,
+
+			ScrapeCtx:       scrapeCtx,
+			ScrapeCtxCancel: scrapeCtxCancel,
 		}
 
 		xkcd.Xkcd(args)

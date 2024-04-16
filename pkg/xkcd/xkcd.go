@@ -1,6 +1,7 @@
 package xkcd
 
 import (
+	"context"
 	"myapp/pkg/scraper"
 )
 
@@ -14,6 +15,9 @@ type OutputStruct struct {
 	ScrapeLimit    int
 	RequestRetries int
 	Parallel       int
+
+	ScrapeCtx       context.Context
+	ScrapeCtxCancel context.CancelFunc
 }
 
 func Xkcd(args OutputStruct) {
@@ -25,6 +29,8 @@ func Xkcd(args OutputStruct) {
 		args.TempFilePattern,
 		args.ScrapeLimit,
 		args.RequestRetries,
-		args.Parallel)
+		args.Parallel,
+		args.ScrapeCtx,
+		args.ScrapeCtxCancel)
 
 }
