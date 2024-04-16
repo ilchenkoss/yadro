@@ -12,42 +12,17 @@ import (
 	"time"
 )
 
-func findIDs(data map[int]ScrapedData, tempedIDs []int) (int, []int) {
-	var maxID int
-	var missingIDs []int
-	existingIDs := make(map[int]bool)
-
-	for key := range data {
-		existingIDs[key] = true
+func findExistIDs(data map[int]ScrapedData, tempedIDs []int) map[int]bool {
+	existIDs := make(map[int]bool)
+	//add db ids to map
+	for dbID := range data {
+		existIDs[dbID] = true
 	}
-
-	for _, tempedID := range tempedIDs {
-		if !existingIDs[tempedID] {
-			missingIDs = append(missingIDs, tempedID)
-		}
+	//add temp ids to map
+	for tempID := range tempedIDs {
+		existIDs[tempID] = true
 	}
-
-	for id := range existingIDs {
-		if id > maxID {
-			maxID = id
-		}
-	}
-
-	for i := 1; i <= maxID; i++ {
-		if !existingIDs[i] && i != 404 { // funny ID
-			missingIDs = append(missingIDs, i)
-		}
-	}
-
-	if 0 > len(missingIDs) && len(missingIDs) < 10 {
-		fmt.Printf("Потерянные ID: %v", missingIDs)
-	}
-
-	if len(missingIDs) >= 10 {
-		fmt.Printf("Missed IDs: %v ...and..more..\n", missingIDs[:10])
-	}
-
-	return maxID + 1, missingIDs
+	return existIDs
 }
 
 func Scrape(dbPath string,
@@ -68,12 +43,12 @@ func Scrape(dbPath string,
 	//check temp files
 	temp := database.FoundTemp(tempDirPath, tempFolderPattern, tempFilePattern)
 
-	//choose ID, where stopped last scrape; get missedIDs
-	startID, missedIDs := findIDs(dbData, temp.TempIDs)
+	//choose ID, where stopped last scrape; get existIDs
+	existIDs := findExistIDs(dbData, temp.TempIDs)
 
 	//scrape new data
 	startTime := time.Now()
-	scrapedData, actualTempPath := ScrapePuppeteer(parallel, requestRetries, startID, missedIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
+	scrapedData, actualTempPath := ScrapePuppeteer(parallel, requestRetries, existIDs, scrapeLimit, dbData, tempDirPath, tempFolderPattern, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
 	endTime := time.Now()
 	fmt.Printf("Scrape time: %v\n", endTime.Sub(startTime))
 
@@ -92,10 +67,11 @@ func Scrape(dbPath string,
 	return
 }
 
-func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, scrapeCtx context.Context) {
+func appendIDs(jobs chan int, scrapeLimit int, existIDs map[int]bool, scrapeCtx context.Context) {
 
-	// Add missed IDs
-	for _, ID := range missedIDs {
+	// Generate IDs starting from startID and check against existIDs
+	startID := 1
+	for {
 		select {
 		case <-scrapeCtx.Done():
 			return
@@ -103,28 +79,18 @@ func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, scr
 			if scrapeLimit == 0 {
 				return
 			}
-			jobs <- ID
-			scrapeLimit--
-		}
-	}
-
-	// Generate IDs
-	for scrapeLimit != 0 {
-		select {
-		case <-scrapeCtx.Done():
-			return
-		default:
-			jobs <- startID
+			if !existIDs[startID] {
+				jobs <- startID
+				scrapeLimit--
+			}
 			startID++
-			scrapeLimit--
 		}
 	}
 }
 
 func ScrapePuppeteer(parallel int,
 	retries int,
-	startID int,
-	missedIDs []int,
+	existIDs map[int]bool,
 	scrapeLimit int,
 	dbData map[int]ScrapedData,
 	tempDirPath string,
@@ -170,7 +136,7 @@ func ScrapePuppeteer(parallel int,
 	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh)
 
 	// Append IDs to jobs
-	go appendIDs(jobs, scrapeLimit, missedIDs, startID, scrapeCtx)
+	go appendIDs(jobs, scrapeLimit, existIDs, scrapeCtx)
 
 	// Launch a goroutine to wait for all jobs to finish
 	go func() {
