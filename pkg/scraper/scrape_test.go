@@ -64,6 +64,6 @@ func TestResponseFunnyComics(t *testing.T) {
 	testRequst(http.StatusNotFound, ctxCancel, 404)
 
 	if ctx.Err() != nil {
-		t.Errorf("Context not closed, but comics end")
+		t.Errorf("Context closed, but comics not end")
 	}
 }
