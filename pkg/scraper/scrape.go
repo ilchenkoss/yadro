@@ -171,12 +171,8 @@ func ScrapePuppeteer(parallel int,
 	}()
 
 	// Process results
-	var result = make(map[int]ScrapedData)
-
-	for res := range resultCh {
-		result = res
-		close(resultCh)
-	}
+	result := <-resultCh
+	close(resultCh)
 
 	return result, actualTempFolder
 }
