@@ -35,6 +35,10 @@ func stemming(notNormalizedString []string) map[string]KeywordsInfo {
 
 		var stemmedWord, err = snowball.Stem(word, "english", true)
 
+		if stemmedWord == "" {
+			continue
+		}
+
 		//uniqueness
 		if err == nil {
 			if duplicateContainer[stemmedWord] {
