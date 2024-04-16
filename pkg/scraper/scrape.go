@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"myapp/pkg/database"
@@ -91,8 +92,8 @@ func Scrape(dbPath string,
 	return
 }
 
-func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, finishScrapeCh chan struct{}) {
-
+func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, ctxCancel context.CancelFunc) {
+	defer ctxCancel()
 	//add missed IDs
 	for _, ID := range missedIDs {
 		if !Condition || scrapeLimit == 0 {
@@ -108,8 +109,6 @@ func appendIDs(jobs chan int, scrapeLimit int, missedIDs []int, startID int, fin
 		startID++
 		scrapeLimit--
 	}
-	close(finishScrapeCh)
-	return
 }
 
 func ScrapePuppeteer(parallel int,
@@ -127,7 +126,7 @@ func ScrapePuppeteer(parallel int,
 	jobs := make(chan int, 1)
 	goodScrapesCh := make(chan []byte, 1)
 	resultCh := make(chan map[int]ScrapedData, 1)
-	finishScrapeCh := make(chan struct{})
+	finishScrapeCtx, ctxCancel := context.WithCancel(context.Background())
 
 	// Create temp folder
 	actualTempFolder := database.CreateTempFolder(tempDirPath, tempFolderPattern)
@@ -141,7 +140,7 @@ func ScrapePuppeteer(parallel int,
 
 	// Create scrape worker goroutines
 	for sworker := 1; sworker <= parallel; sworker++ {
-		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, finishScrapeCh, actualTempFolder, tempFilePattern)
+		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, finishScrapeCtx, actualTempFolder, tempFilePattern)
 	}
 
 	// Append temped response
@@ -160,7 +159,7 @@ func ScrapePuppeteer(parallel int,
 	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh)
 
 	// Append IDs to jobs
-	go appendIDs(jobs, scrapeLimit, missedIDs, startID, finishScrapeCh)
+	go appendIDs(jobs, scrapeLimit, missedIDs, startID, ctxCancel)
 
 	// Launch a goroutine to wait for all jobs to finish
 	go func() {
@@ -183,7 +182,7 @@ func scrapeWorker(retries int,
 	results chan []byte,
 	swg *sync.WaitGroup,
 	pwg *sync.WaitGroup,
-	finishScrapeCh chan struct{},
+	ctx context.Context,
 	actualTempFolder string,
 	tempFilePattern string) {
 
@@ -201,7 +200,7 @@ func scrapeWorker(retries int,
 				results <- data
 			}
 
-		case <-finishScrapeCh:
+		case <-ctx.Done():
 			swg.Done()
 			return
 		}
