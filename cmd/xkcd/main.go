@@ -47,25 +47,18 @@ func loadConfig(configPath string) Config {
 	return config
 }
 
-func addInterruptHandling(ScrapeCtxCancel context.CancelFunc) {
-	sign := make(chan os.Signal, 1)
-
-	//select incoming signals
-	signal.Notify(sign, os.Interrupt)
-
-	go func() {
-		//wait interrupt
-		<-sign
-		//change condition
-		ScrapeCtxCancel()
-		fmt.Println("\nInterrupt. Stopping scrape...")
-	}()
-}
-
 func main() {
 
 	scrapeCtx, scrapeCtxCancel := context.WithCancel(context.Background())
-	addInterruptHandling(scrapeCtxCancel)
+
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
+	go func() {
+		//wait interrupt
+		<-ctx.Done()
+		//change condition
+		scrapeCtxCancel()
+		fmt.Println("\nInterrupt. Stopping scrape...")
+	}()
 
 	//parse flags
 	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
