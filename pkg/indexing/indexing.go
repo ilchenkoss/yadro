@@ -7,6 +7,7 @@ import (
 	"myapp/pkg/database"
 	"myapp/pkg/scraper"
 	"myapp/pkg/words"
+	"os"
 	"sort"
 )
 
@@ -175,7 +176,7 @@ func MainIndexing(requestString string) {
 
 	//save indexedDB
 	data, _ := json.MarshalIndent(indexDB, "", "\t")
-	database.WriteToFile("pkg/database/index.json", data, false)
+	os.WriteFile("pkg/database/index.json", data, 0644)
 
 	//create indexedRequest
 	requestWords := words.StringNormalization(requestString)
