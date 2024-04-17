@@ -19,6 +19,7 @@ type Config struct {
 	} `yaml:"scrape"`
 	Database struct {
 		DBPath            string `yaml:"db_path"`
+		IndexPath         string `yaml:"index_path"`
 		TempDir           string `yaml:"temp_dir"`
 		TempFolderPattern string `yaml:"temp_folder_pattern"`
 		TempFilePattern   string `yaml:"temp_file_pattern"`
@@ -86,7 +87,9 @@ func main() {
 
 			ScrapeCtx:       scrapeCtx,
 			ScrapeCtxCancel: scrapeCtxCancel,
-			StringRequest:   *stringRequest,
+
+			StringRequest: *stringRequest,
+			IndexPath:     config.Database.IndexPath,
 		}
 
 		xkcd.Xkcd(args)

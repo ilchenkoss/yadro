@@ -21,6 +21,7 @@ type OutputStruct struct {
 	ScrapeCtxCancel context.CancelFunc
 
 	StringRequest string
+	IndexPath     string
 }
 
 func Xkcd(args OutputStruct) {
@@ -36,5 +37,7 @@ func Xkcd(args OutputStruct) {
 		args.ScrapeCtx,
 		args.ScrapeCtxCancel)
 
-	indexing.MainIndexing(args.StringRequest)
+	if len(args.StringRequest) > 0 {
+		indexing.MainIndexing(args.StringRequest, args.DatabasePath, args.IndexPath)
+	}
 }
