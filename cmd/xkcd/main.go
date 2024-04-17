@@ -4,12 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
-	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -61,10 +59,6 @@ func addInterruptHandling(ScrapeCtxCancel context.CancelFunc) {
 		//change condition
 		ScrapeCtxCancel()
 		fmt.Println("\nInterrupt. Stopping scrape...")
-
-		//add emergency exit
-		time.Sleep(10 * time.Second)
-		os.Exit(1)
 	}()
 }
 
