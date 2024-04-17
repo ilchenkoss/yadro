@@ -3,6 +3,7 @@ package indexing
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"myapp/pkg/database"
 	"myapp/pkg/scraper"
 	"myapp/pkg/words"
@@ -10,21 +11,22 @@ import (
 )
 
 const (
-	WeightStandard = 10.0
+	RelevantFlag = true
+
+	WeightStandard = 1.0
 
 	//ВЕСА ДЛЯ ЗАПРОСА
-	WeightRequestWordIndex     = -0.3 //первое слово имеет больший вес к последующему
-	WeightRequestWordDuplicate = 2    //слово повторяется чаще в запросе
+	WeightRequestWordIndex     = 0.3 //чем слово ближе к началу, тем больше вес
+	WeightRequestWordDuplicate = 1.0 //слово повторяется чаще в запросе
 
 	//ВЕСА ДЛЯ ДАННЫХ
-	WeightComicsWordIndex     = -0.1   //слово используется в начале
-	WeightComicsWordDuplicate = 2.0    //слово повторяется чаще в комиксе
-	WeightComicsActual        = -0.001 //актуальность комикса измеряется по ID
+	WeightComicsWordIndex     = 0.2   //слово используется в начале
+	WeightComicsWordDuplicate = 2.0   //слово повторяется чаще в комиксе
+	WeightComicsActual        = 0.001 //актуальность комикса измеряется по ID
 
 	//ВЕСА ДЛЯ ВЫДАЧИ
-	WeightResponseRelevantWord     = 5
 	WeightResponseRelevantCoverage = 10
-	WeightResponseIDIndexFromDB    = -0.2
+	WeightResponseIDIndex          = 0.2
 )
 
 type IDWeight struct {
@@ -42,14 +44,15 @@ func createWeightData(dbData map[int]scraper.ScrapedData) map[string][]IDWeight 
 		for word, wordInfo := range data.Keywords {
 
 			weight := WeightStandard
-			weight += float64(wordInfo.EntryIndex+1) * WeightComicsWordIndex
-			weight += float64(wordInfo.Repeat) * WeightComicsWordDuplicate
+			weight += WeightComicsWordIndex / math.Log(float64(wordInfo.EntryIndex+2))
+			if wordInfo.Repeat > 1 {
+				weight += float64(wordInfo.Repeat) * WeightComicsWordDuplicate
+			}
 			weight += float64(ID) * WeightComicsActual
 
 			weightData[word] = append(weightData[word], IDWeight{Weight: weight, ID: ID})
 		}
 	}
-	fmt.Println(weightData)
 	return weightData
 }
 
@@ -72,6 +75,7 @@ func createIndexData(weightData map[string][]IDWeight) map[string][]int {
 
 		result[word] = weightSlice
 	}
+
 	return result
 }
 
@@ -87,7 +91,7 @@ func createWeightRequest(RequestWords map[string]words.KeywordsInfo) []WordsWeig
 	for word, wordInfo := range RequestWords {
 
 		weight := WeightStandard
-		weight += float64(wordInfo.EntryIndex+1) * WeightRequestWordIndex
+		weight += WeightRequestWordIndex / math.Log(float64(wordInfo.EntryIndex+2))
 		weight += float64(wordInfo.Repeat) * WeightRequestWordDuplicate
 
 		resultWeightSlice = append(resultWeightSlice, WordsWeight{Word: word, Weight: weight})
@@ -97,6 +101,7 @@ func createWeightRequest(RequestWords map[string]words.KeywordsInfo) []WordsWeig
 	sort.Slice(resultWeightSlice, func(i, j int) bool {
 		return resultWeightSlice[i].Weight > resultWeightSlice[j].Weight
 	})
+	fmt.Println("response weight: ", resultWeightSlice)
 
 	return resultWeightSlice
 }
@@ -115,34 +120,37 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 	//определяем результат
 	var result []IDWeight
 
-	//определяем все ID, которые включают в себя запрошенные слова
-	competitiveIDs := make(map[int]float64) //map[id]word
+	//определяем веса ID, которые используются в словах
+	competitiveIDs := make(map[int]float64)
+
 	//определяем все Words, которые участвуют в конкурсе :)
-	competitiveWords := make(map[string]bool)
+	competitiveWords := make(map[string]bool, len(indexRequest))
 
+	//по каждому слову в запросе
 	for _, indexedRequestWord := range indexRequest {
-		competitiveWords[indexedRequestWord.Word] = true
-
+		if RelevantFlag {
+			competitiveWords[indexedRequestWord.Word] = true
+		}
 		idsWithWord := indexData[indexedRequestWord.Word]
-		//определяем первичный вес для каждого ID на основе сортированного ранее слайса из бд и веса слова запроса
+		//определяем вес ID
 		for index, ID := range idsWithWord {
-			if competitiveIDs[ID] == 0 {
-				competitiveIDs[ID] = WeightStandard
-			}
-			competitiveIDs[ID] += indexedRequestWord.Weight + float64(index)*WeightResponseIDIndexFromDB
+			//вес слова + коррекция на индекс в отсортированном по релевантности слайсе
+			competitiveIDs[ID] += indexedRequestWord.Weight + WeightResponseIDIndex/math.Log(float64(index+2))
 		}
 	}
 
-	//производим коррекцию на нерелвантные слова слов
 	for ID, weight := range competitiveIDs {
 
-		for word := range dbData[ID].Keywords {
-			_, ok := competitiveWords[word]
-			if !ok {
-				weight += float64(len(dbData[ID].Keywords))
-				continue
+		if RelevantFlag {
+			//корректировка по наполненности выдачи искомыми словами
+			relevantWord := 0
+			for word := range dbData[ID].Keywords {
+				_, ok := competitiveWords[word]
+				if ok {
+					relevantWord++
+				}
 			}
-			weight += WeightResponseRelevantWord
+			weight += float64((relevantWord / len(dbData[ID].Keywords)) * WeightResponseRelevantCoverage)
 		}
 
 		result = append(result, IDWeight{ID: ID, Weight: weight})
@@ -157,8 +165,6 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 }
 
 func MainIndexing(requestString string) {
-
-	//чем меньше нерелевантных слов, тем лучше??
 
 	//load db
 	dbDataBytes := database.ReadBytesFromFile("pkg/database/database.json")
@@ -180,10 +186,13 @@ func MainIndexing(requestString string) {
 
 	fmt.Printf("\n\n\n")
 
-	if len(response) >= 10 {
-		fmt.Println(response[:10])
-	} else {
-		fmt.Println(response)
+	limitedResponse := response
+	if len(response) > 10 {
+		limitedResponse = response[:10]
+	}
+	for _, responseData := range limitedResponse {
+		fmt.Printf("https://xkcd.com/%d/\n", responseData.ID)
+
 	}
 
 }
