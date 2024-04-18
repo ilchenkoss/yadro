@@ -5,5 +5,7 @@ test: deps
 	@echo "Running Tests"
 	@go test -v ./...
 
+bench:
+	@go test -bench= ./pkg/indexing/.
 deps:
 	@go get ./...
