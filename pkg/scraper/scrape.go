@@ -1,174 +1,236 @@
 package scraper
 
 import (
+	"context"
+	"fmt"
 	"io"
-	"maps"
 	"myapp/pkg/database"
 	"net/http"
-	"strconv"
+	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
-const (
-	Status_code_comics_end          = 0
-	Status_code_good                = 200
-	Status_code_response_error      = 1337
-	Status_code_response_read_error = 1338
-	Status_code_unknown             = 1339
-	Status_code_response_parser     = 1340
-	Status_code_no_such_host        = 1341
-)
-
-var Condition = true //wait comics end or interrupt
-
-func findLastID(data map[int]ParsedData) int {
-
-	var maxID int
-
-	for key := range data {
-		if key > maxID {
-			maxID = key
-		}
+func findExistIDs(data map[int]ScrapedData, tempedIDs []int) map[int]bool {
+	existIDs := make(map[int]bool)
+	//add db ids to map
+	for dbID := range data {
+		existIDs[dbID] = true
 	}
-	return maxID
+	//add temp ids to map
+	for tempID := range tempedIDs {
+		existIDs[tempID] = true
+	}
+	return existIDs
 }
 
-func Scrape(dbPath string, eDBPath string, scrapeLimit int) ScrapeResult {
+func Scrape(dbPath string,
+	eDBPath string,
+	tempDirPath string,
+	tempFolderPattern string,
+	tempFilePattern string,
+	scrapeLimit int,
+	requestRetries int,
+	parallel int,
+	scrapeCtx context.Context,
+	ScrapeCtxCancel context.CancelFunc) {
 
 	//data from db
 	dbDataBytes := database.ReadBytesFromFile(dbPath)
-	dbData := DecodeFileData(dbDataBytes)
+	dbData := decodeFileData(dbDataBytes)
 
-	//choose ID, where stopped last scrape
-	startID := findLastID(dbData.Data) + 1
+	//check temp files
+	temp := database.FoundTemp(tempDirPath, tempFolderPattern, tempFilePattern)
 
-	//get new data with old
-	scrapedData := MainScrape(dbData, scrapeLimit, startID)
+	//get existIDs
+	existIDs := findExistIDs(dbData, temp.TempIDs)
+
+	// Create temp folder
+	actualTempPath := database.CreateTempFolder(tempDirPath, tempFolderPattern)
+
+	//scrape new data
+	startTime := time.Now()
+	scrapedData := ScrapePuppeteer(parallel, requestRetries, existIDs, scrapeLimit, dbData, actualTempPath, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
+	endTime := time.Now()
+	fmt.Printf("\nScrape time: %v\n", endTime.Sub(startTime))
 
 	//write last data
-	scrapedDataBytes := codeData(scrapedData)
-	database.WriteData(dbPath, eDBPath, scrapedDataBytes)
+	scrapedDataBytes := codeFileData(scrapedData)
+	dbErr := database.WriteData(dbPath, eDBPath, scrapedDataBytes)
 
-	return scrapedData
+	if dbErr == nil {
+		fmt.Println("Data successfully saved.")
+		//remove temps
+		for oldTempPath := range temp.TempPaths {
+			os.RemoveAll(oldTempPath)
+		}
+		os.RemoveAll(actualTempPath)
+	}
+	return
 }
 
-func MainScrape(dbData ScrapeResult, scrapeLimit int, startID int) ScrapeResult {
+func appendIDs(jobs chan int, scrapeLimit int, existIDs map[int]bool, scrapeCtx context.Context) {
 
-	resultData := dbData.Data
-	badIDs := maps.Clone(dbData.BadIDs)
-
-	client := http.Client{Timeout: time.Duration(1) * time.Second} //scrape client
-
-	for Condition && scrapeLimit != 0 {
-
-		var data ParsedData
-		var response bool
-
-		for ID := range dbData.BadIDs {
-			if scrapeLimit == 0 || !Condition {
-				break
+	// Generate IDs starting from startID and check against existIDs
+	startID := 1
+	for {
+		select {
+		case <-scrapeCtx.Done():
+			return
+		default:
+			if scrapeLimit == 0 {
+				return
 			}
-			data, badIDs, response = secondScrape(client, ID, badIDs)
-			delete(dbData.BadIDs, ID)
-			if response {
-				resultData[ID] = data //append data
+			if !existIDs[startID] {
+				jobs <- startID
+				scrapeLimit--
 			}
-			scrapeLimit -= 1
+			startID++
 		}
-
-		if Condition { //condition need if interrupt, when checking bad IDs
-
-			data, badIDs, response = secondScrape(client, startID, badIDs)
-
-			if response {
-				resultData[startID] = data //append data
-			}
-		}
-
-		scrapeLimit -= 1
-		startID += 1
 	}
-
-	dbData.Timestamp = time.Now()
-	dbData.BadIDs = badIDs
-	dbData.Data = resultData
-
-	return dbData
 }
 
-func secondScrape(client http.Client, ID int, badIDs map[int]int) (ParsedData, map[int]int, bool) {
+func ScrapePuppeteer(parallel int,
+	retries int,
+	existIDs map[int]bool,
+	scrapeLimit int,
+	dbData map[int]ScrapedData,
+	actualTempPath string,
+	tempFilePattern string,
+	existedTempFiles map[string][]string,
+	scrapeCtx context.Context,
+	scrapeCtxCancel context.CancelFunc) map[int]ScrapedData {
 
-	url := "https://xkcd.com/" + strconv.Itoa(ID) + "/info.0.json"
-	retries := 3
+	// Create buffered channels for jobs and results
+	jobs := make(chan int, 1)
+	goodScrapesCh := make(chan []byte, 1)
+	resultCh := make(chan map[int]ScrapedData, 1)
 
-	dataBytes, statusCode := sendRequest(client, url, retries, ID, Status_code_unknown)
+	// Set scraper WaitGroup
+	var swg sync.WaitGroup
+	swg.Add(parallel)
 
-	if statusCode != Status_code_good {
-		if statusCode != Status_code_comics_end {
-			badIDs[ID] = statusCode
+	// Set parser WaitGroup
+	var pwg sync.WaitGroup
+
+	// Create scrape worker goroutines
+	for sworker := 1; sworker <= parallel; sworker++ {
+		go scrapeWorker(retries, sworker, jobs, goodScrapesCh, &swg, &pwg, scrapeCtx, actualTempPath, tempFilePattern, scrapeCtxCancel)
+	}
+
+	// Append temped response
+	go func() {
+		for tempFolder, tempFiles := range existedTempFiles {
+			for _, tempFile := range tempFiles {
+				pwg.Add(1)
+				filePath := fmt.Sprintf("%s/%s", tempFolder, tempFile)
+				tempData := database.ReadBytesFromFile(filePath)
+				goodScrapesCh <- tempData
+			}
 		}
-		return ParsedData{}, badIDs, false
-	}
-	delete(badIDs, ID)
-	data, err := responseParser(dataBytes)
-	if err != nil {
-		badIDs[ID] = Status_code_response_parser
-		return ParsedData{}, badIDs, false
-	}
+	}()
 
-	return data, badIDs, true
+	// Create parser worker
+	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh)
 
+	// Append IDs to jobs
+	go appendIDs(jobs, scrapeLimit, existIDs, scrapeCtx)
+
+	// Launch a goroutine to wait for all jobs to finish
+	go func() {
+		swg.Wait()
+		close(jobs)
+		pwg.Wait()
+		close(goodScrapesCh)
+	}()
+
+	// Process results
+	result := <-resultCh
+	close(resultCh)
+
+	fmt.Printf("\nsuccessful results collected: %d", len(result))
+
+	return result
 }
 
-func sendRequest(client http.Client, url string, retries int, ID int, status int) ([]byte, int) { // return data, status code
+func scrapeWorker(retries int,
+	workerID int,
+	IDsChan chan int,
+	results chan []byte,
+	swg *sync.WaitGroup,
+	pwg *sync.WaitGroup,
+	ctx context.Context,
+	actualTempFolder string,
+	tempFilePattern string,
+	scrapeCtxCancel context.CancelFunc) {
 
-	if retries <= 0 || !Condition { //exit from recursion
-		return nil, status
+	client := http.Client{Timeout: time.Duration(1) * time.Second}
+
+	for {
+		select {
+		case ID := <-IDsChan:
+			fmt.Printf("Scrape status:\nworkerID: %d, requestID: %d\n", workerID, ID)
+			url := fmt.Sprintf("https://xkcd.com/%d/info.0.json", ID)
+			data := sendRequest(&client, url, retries, ID, scrapeCtxCancel)
+			if data != nil {
+				pwg.Add(1)
+				database.SaveTemp(data, actualTempFolder, tempFilePattern, ID)
+				results <- data
+			}
+
+		case <-ctx.Done():
+			swg.Done()
+			return
+		}
 	}
-	println("id: " + strconv.Itoa(ID) + ", retries: " + strconv.Itoa(retries))
+}
+
+func sendRequest(client *http.Client, url string, retries int, ID int, scrapeCtxCancel context.CancelFunc) []byte {
+
+	if retries <= 0 { //exit from recursion
+		return nil
+	}
 
 	resp, err := client.Get(url)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "no such host") {
 			time.Sleep(1 * time.Second)
-			return sendRequest(client, url, retries-1, ID, Status_code_no_such_host)
+			sendRequest(client, url, retries-1, ID, scrapeCtxCancel)
+			return nil
 		}
-		return sendRequest(client, url, retries-1, ID, Status_code_response_error)
+		sendRequest(client, url, retries-1, ID, scrapeCtxCancel)
+		return nil
 	}
 
 	defer resp.Body.Close()
-	//response ok
-	if resp.StatusCode == 200 {
 
-		client.Timeout = 1 // reset timeout
+	//response ok
+	if resp.StatusCode == http.StatusOK {
 
 		body, errRead := io.ReadAll(resp.Body)
-
 		if errRead != nil {
-			return sendRequest(client, url, retries-1, ID, Status_code_response_read_error)
+			sendRequest(client, url, retries-1, ID, scrapeCtxCancel)
+			return nil
 		}
 
-		return body, Status_code_good
-
+		return body
 	}
 
-	if resp.StatusCode != 404 { //response not ok
-
-		client.Timeout = 5 //add time to response
-		return sendRequest(client, url, retries-1, ID, resp.StatusCode)
-
+	if resp.StatusCode != http.StatusNotFound { //response not ok
+		sendRequest(client, url, retries-1, ID, scrapeCtxCancel)
+		return nil
 	}
 
 	if ID == 404 { //funny comics id
-		return nil, 200
+		return nil
 	}
 
 	if ID != 404 { // if statusCode == 404 and id != 404
-		Condition = false //comics end
-		return nil, Status_code_comics_end
+		scrapeCtxCancel()
+		return nil
 	}
 
-	return sendRequest(client, url, retries-1, ID, Status_code_unknown)
+	return nil
 }

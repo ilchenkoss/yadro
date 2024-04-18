@@ -1,29 +1,69 @@
 package scraper
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
-func TestMissID(t *testing.T) {
+func testRequst(wantStatusCode int, ctxCancel context.CancelFunc, ID int) []byte {
+	// create fake http server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-	scrapeIDs := 10
-	dbData := ScrapeResult{
-		Data:   map[int]ParsedData{},
-		BadIDs: map[int]int{},
+		w.WriteHeader(wantStatusCode)    //status code
+		w.Write([]byte("Hello, world!")) //body
+
+	}))
+
+	response := sendRequest(server.Client(), server.URL, 3, ID, ctxCancel)
+	return response
+}
+
+func TestRequestOK(t *testing.T) {
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	response := testRequst(http.StatusOK, ctxCancel, 100)
+
+	if ctx.Err() != nil {
+		t.Errorf("Context closed, but comics dont end")
 	}
-	scrapeResult := MainScrape(dbData, scrapeIDs, 1)
 
-	var IDs []int
-	for goodID := range scrapeResult.Data {
-		IDs = append(IDs, goodID)
+	if response == nil {
+		t.Errorf("Response do not return, but it shouldn't have")
+	}
+}
+
+func TestRequestNotOK(t *testing.T) {
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	response := testRequst(http.StatusInternalServerError, ctxCancel, 100)
+
+	if ctx.Err() != nil {
+		t.Errorf("Context closed, but comics dont end")
 	}
 
-	for badID := range scrapeResult.BadIDs {
-		IDs = append(IDs, badID)
+	if response != nil {
+		t.Errorf("Response return, but it shouldn't have")
 	}
+}
 
-	if len(IDs) != scrapeIDs {
+func TestResponseCLoseContext(t *testing.T) {
 
-		t.Errorf("\nResult was incorrect. \n scrapes: %d, \n IDs: %d.", scrapeIDs, len(IDs))
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	testRequst(http.StatusNotFound, ctxCancel, 999)
+
+	if ctx.Err() == nil {
+		t.Errorf("Context not closed, but comics end")
+	}
+}
+
+func TestResponseFunnyComics(t *testing.T) {
+
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	testRequst(http.StatusNotFound, ctxCancel, 404)
+
+	if ctx.Err() != nil {
+		t.Errorf("Context closed, but comics not end")
 	}
 }
