@@ -239,7 +239,7 @@ func generateWords(uniqueWords int, trashWords map[string]bool, duplicates int) 
 
 		var duplicateKeys []string
 
-		for key, _ := range duplicateContainer {
+		for key := range duplicateContainer {
 			duplicateKeys = append(duplicateKeys, key)
 		}
 
