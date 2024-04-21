@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"encoding/json"
+	"fmt"
 	"myapp/pkg/words"
 	"sync"
 )
@@ -32,9 +33,11 @@ type ParsedData struct {
 	Url      string                        `json:"url"`
 }
 type ResponseData struct {
-	Alt string `json:"alt"`
-	Img string `json:"img"`
-	ID  int    `json:"num"`
+	Alt        string `json:"alt"`
+	Transcript string `json:"transcript"`
+	Title      string `json:"title"`
+	Img        string `json:"img"`
+	ID         int    `json:"num"`
 }
 
 func responseParser(data []byte) (ParsedData, error) {
@@ -45,9 +48,11 @@ func responseParser(data []byte) (ParsedData, error) {
 		return ParsedData{}, err
 	}
 
+	responseWords := fmt.Sprintf("%s %s %s", response.Title, response.Transcript, response.Alt)
+
 	result := ParsedData{
 		ID:       response.ID,
-		Keywords: words.StringNormalization(response.Alt),
+		Keywords: words.StringNormalization(responseWords),
 		Url:      response.Img,
 	}
 
