@@ -103,39 +103,55 @@ func CreateIndexingDB(dbData map[int]scraper.ScrapedData, indexPath string) map[
 	indexData := createIndexData(weightData)
 
 	//save indexedDB
-	data, _ := json.MarshalIndent(indexData, "", "\t")
-	os.WriteFile(indexPath, data, 0644)
+	data, errCode := json.MarshalIndent(indexData, "", "\t")
+	if errCode != nil {
+		fmt.Printf("Can't save index table: %s", errCode)
+		return indexData
+	}
+	errWrite := os.WriteFile(indexPath, data, 0644)
+	if errWrite != nil {
+		fmt.Printf("Can't save index table: %s", errWrite)
+		return indexData
+	}
 	return indexData
 }
 
-//func createWordsWeight(weightRequest []WordsWeight, dbData map[int]scraper.ScrapedData) map[string][]int {
-//
-//	result := make(map[string][]IDWeight)
-//
-//	for ID, data := range dbData {
-//		if len(data.Keywords) == 0 {
-//			continue
-//		}
-//		// Проверяем, содержатся ли ключевые слова из weightRequest в Keywords
-//		for _, wordRequestInfo := range weightRequest {
-//			if keyWordInfo, ok := data.Keywords[wordRequestInfo.Word]; ok {
-//				//ID содержит искоме слово
-//				//Создаем Вес для слова
-//				var weight float64
-//				weight += WeightComicsWordIndex / math.Log(float64(keyWordInfo.EntryIndex+2))
-//				if keyWordInfo.Repeat > 1 {
-//					weight += float64(keyWordInfo.Repeat) * WeightComicsWordDuplicate
-//				}
-//				weight += float64(ID) * WeightComicsActual
-//				result[wordRequestInfo.Word] = append(result[wordRequestInfo.Word], IDWeight{ID: ID, Weight: weight})
-//			}
-//		}
-//
-//	}
-//
-//	wordsWeight := createIndexData(result)
-//	return wordsWeight
-//}
+func createWordsWeightWithoutIndex(weightRequest []WordsWeight, dbData map[int]scraper.ScrapedData) map[string][]int {
+
+	weightData := make(map[string][]IDWeight)
+
+	for ID, data := range dbData {
+		if len(data.Keywords) == 0 {
+			continue
+		}
+		// Проверяем, содержатся ли ключевые слова из weightRequest в Keywords
+		for _, wordRequestInfo := range weightRequest {
+			if keyWordInfo, ok := data.Keywords[wordRequestInfo.Word]; ok {
+				//ID содержит искоме слово
+				//Создаем Вес для ID
+				idWeight := IDWeight{ID: ID, Weight: 0}
+
+				for _, wordInfo := range keyWordInfo {
+					if wordInfo.Position == "title" {
+						idWeight.Weight += weightByKeyword(wordInfo, WeightComicsWordPositionTitle)
+					}
+					if wordInfo.Position == "transcript" {
+						idWeight.Weight += weightByKeyword(wordInfo, WeightComicsWordPositionTranscript)
+					}
+					if wordInfo.Position == "alt" {
+						idWeight.Weight += weightByKeyword(wordInfo, WeightComicsWordPositionAlt)
+					}
+				}
+				idWeight.Weight += float64(ID) * WeightComicsActual
+				weightData[wordRequestInfo.Word] = append(weightData[wordRequestInfo.Word], idWeight)
+			}
+
+		}
+	}
+
+	wordsWeight := createIndexData(weightData)
+	return wordsWeight
+}
 
 type WordsWeight struct {
 	Word   string
@@ -159,7 +175,6 @@ func createWeightRequest(RequestWords map[string]words.KeywordsInfo) []WordsWeig
 	sort.Slice(resultWeightSlice, func(i, j int) bool {
 		return resultWeightSlice[i].Weight > resultWeightSlice[j].Weight
 	})
-	fmt.Println("response weight: ", resultWeightSlice)
 
 	return resultWeightSlice
 }
@@ -226,28 +241,18 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 
 			if countWordTitle > 0 {
 				coverage := float64(relevantWordTitle / countWordTitle)
-				if coverage > 1 {
-					coverage = 1
-				}
 				weight += coverage * WeightResponseRelevantCoverage * WeightResponseRelevantCoverageTitle
 			}
 			if countWordTranscript > 0 {
 				coverage := float64(relevantWordTranscript / countWordTranscript)
-				if coverage > 1 {
-					coverage = 1
-				}
 				weight += coverage * WeightResponseRelevantCoverage * WeightResponseRelevantCoverageTranscript
 			}
 			if countWordAlt > 0 {
 				coverage := float64(relevantWordAlt / countWordAlt)
-				if coverage > 1 {
-					coverage = 1
-				}
 				weight += coverage * WeightResponseRelevantCoverage * WeightResponseRelevantCoverageAlt
 			}
 
 		}
-		fmt.Println(ID, weight)
 		result = append(result, IDWeight{ID: ID, Weight: weight})
 	}
 
@@ -268,7 +273,7 @@ func FindComics(requestString string, indexDB map[string][]int, dbData map[int]s
 	//get response
 	response := createWeightComics(indexDB, weightRequest, dbData)
 
-	fmt.Printf("\n\n\n")
+	fmt.Printf("\nComics for you:\n\n")
 
 	limitedResponse := response
 	if len(response) > 10 {

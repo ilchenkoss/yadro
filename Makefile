@@ -6,6 +6,6 @@ test: deps
 	@go test -v ./...
 
 bench:
-	@go test -bench= ./pkg/indexing/.
+	@go test -bench=. ./pkg/indexing/.
 deps:
 	@go get ./...
