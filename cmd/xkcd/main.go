@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
