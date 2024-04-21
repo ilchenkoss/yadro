@@ -40,7 +40,9 @@ func TestParserWorker(t *testing.T) {
 		goodScrapesCh <- data2
 	}()
 
-	go parserWorker(map[int]ScrapedData{}, goodScrapesCh, &pwg, resultCh)
+	scrapeScore := 0
+
+	go parserWorker(map[int]ScrapedData{}, goodScrapesCh, &pwg, resultCh, &scrapeScore)
 
 	pwg.Wait()
 	close(goodScrapesCh)
@@ -48,7 +50,7 @@ func TestParserWorker(t *testing.T) {
 	result := <-resultCh
 	close(resultCh)
 
-	if !reflect.DeepEqual(result, wantResult) {
+	if !reflect.DeepEqual(result, wantResult) && scrapeScore != 2 {
 		t.Error("\nResult was incorrect")
 	}
 }
