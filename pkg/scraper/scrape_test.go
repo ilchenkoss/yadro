@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func testRequst(wantStatusCode int, ctxCancel context.CancelFunc, ID int) []byte {
+func testRequest(wantStatusCode int, ctxCancel context.CancelFunc, ID int) []byte {
 	// create fake http server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -23,7 +23,7 @@ func testRequst(wantStatusCode int, ctxCancel context.CancelFunc, ID int) []byte
 func TestRequestOK(t *testing.T) {
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
-	response := testRequst(http.StatusOK, ctxCancel, 100)
+	response := testRequest(http.StatusOK, ctxCancel, 100)
 
 	if ctx.Err() != nil {
 		t.Errorf("Context closed, but comics dont end")
@@ -37,7 +37,7 @@ func TestRequestOK(t *testing.T) {
 func TestRequestNotOK(t *testing.T) {
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
-	response := testRequst(http.StatusInternalServerError, ctxCancel, 100)
+	response := testRequest(http.StatusInternalServerError, ctxCancel, 100)
 
 	if ctx.Err() != nil {
 		t.Errorf("Context closed, but comics dont end")
@@ -51,7 +51,7 @@ func TestRequestNotOK(t *testing.T) {
 func TestResponseCLoseContext(t *testing.T) {
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
-	testRequst(http.StatusNotFound, ctxCancel, 999)
+	testRequest(http.StatusNotFound, ctxCancel, 999)
 
 	if ctx.Err() == nil {
 		t.Errorf("Context not closed, but comics end")
@@ -61,7 +61,7 @@ func TestResponseCLoseContext(t *testing.T) {
 func TestResponseFunnyComics(t *testing.T) {
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
-	testRequst(http.StatusNotFound, ctxCancel, 404)
+	testRequest(http.StatusNotFound, ctxCancel, 404)
 
 	if ctx.Err() != nil {
 		t.Errorf("Context closed, but comics not end")
