@@ -259,14 +259,14 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 	return result
 }
 
-func ReturnComics(requestString string, indexDB map[string][]int, dbData map[int]scraper.ScrapedData) {
+func FindComics(requestString string, indexDB map[string][]int, dbData map[int]scraper.ScrapedData) {
 
 	//create indexedRequest
 	requestWords := words.StringNormalization(requestString)
-	indexRequest := createWeightRequest(requestWords)
+	weightRequest := createWeightRequest(requestWords)
 
 	//get response
-	response := createWeightComics(indexDB, indexRequest, dbData)
+	response := createWeightComics(indexDB, weightRequest, dbData)
 
 	fmt.Printf("\n\n\n")
 
