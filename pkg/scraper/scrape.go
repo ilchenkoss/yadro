@@ -34,7 +34,7 @@ func Scrape(dbPath string,
 	requestRetries int,
 	parallel int,
 	scrapeCtx context.Context,
-	ScrapeCtxCancel context.CancelFunc) {
+	ScrapeCtxCancel context.CancelFunc) map[int]ScrapedData {
 
 	//data from db
 	dbDataBytes := database.ReadBytesFromFile(dbPath)
@@ -67,7 +67,7 @@ func Scrape(dbPath string,
 		}
 		os.RemoveAll(actualTempPath)
 	}
-	return
+	return scrapedData
 }
 
 func appendIDs(jobs chan int, scrapeLimit int, existIDs map[int]bool, scrapeCtx context.Context) {

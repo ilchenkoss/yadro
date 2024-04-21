@@ -259,18 +259,7 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 	return result
 }
 
-func MainIndexing(requestString string, dbPath string, indexPath string) {
-
-	//load db
-	dbDataBytes := database.ReadBytesFromFile(dbPath)
-	dbData := scraper.DecodeFileData(dbDataBytes)
-
-	//create indexedDB
-	indexDB := createIndexingDB(dbData)
-
-	//save indexedDB
-	data, _ := json.MarshalIndent(indexDB, "", "\t")
-	os.WriteFile(indexPath, data, 0644)
+func ReturnComics(requestString string, indexDB map[string][]int, dbData map[int]scraper.ScrapedData) {
 
 	//create indexedRequest
 	requestWords := words.StringNormalization(requestString)

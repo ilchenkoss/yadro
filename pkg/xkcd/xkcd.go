@@ -26,7 +26,7 @@ type OutputStruct struct {
 
 func Xkcd(args OutputStruct) {
 
-	scraper.Scrape(args.DatabasePath,
+	scrapeData := scraper.Scrape(args.DatabasePath,
 		args.EDBPath,
 		args.TempDir,
 		args.TempFolderPattern,
@@ -37,7 +37,9 @@ func Xkcd(args OutputStruct) {
 		args.ScrapeCtx,
 		args.ScrapeCtxCancel)
 
+	indexDB := indexing.CreateIndexingDB(scrapeData, args.IndexPath)
+
 	if len(args.StringRequest) > 0 {
-		indexing.MainIndexing(args.StringRequest, args.DatabasePath, args.IndexPath)
+		indexing.ReturnComics(args.StringRequest, indexDB, scrapeData)
 	}
 }
