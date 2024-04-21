@@ -1,10 +1,6 @@
 a
 about
 above
-actually
-after
-again
-against
 all
 almost
 also
@@ -22,7 +18,6 @@ became
 become
 because
 been
-before
 being
 below
 between
@@ -48,6 +43,7 @@ further
 had
 has
 have
+haven't
 having
 he
 he'd
@@ -73,6 +69,7 @@ if
 in
 into
 is
+isn't
 it
 it's
 its
@@ -91,6 +88,7 @@ my
 myself
 neither
 nor
+never
 not
 no
 of
