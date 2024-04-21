@@ -86,13 +86,14 @@ func mergeWords(keywordsTitle map[string]words.KeywordsInfo, keywordsTranscript 
 	return mergedMap
 }
 
-func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, pwg *sync.WaitGroup, resultCh chan map[int]ScrapedData) {
+func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, pwg *sync.WaitGroup, resultCh chan map[int]ScrapedData, scrapeScore *int) {
 
 	for scrape := range goodScrapesCh {
 
 		data, err := responseParser(scrape)
 
 		if err == nil {
+			*scrapeScore++
 			dbData[data.ID] = ScrapedData{
 				Keywords: mergeWords(data.KeywordsTitle, data.KeywordsTranscript, data.KeywordsAlt),
 				Url:      data.Url,

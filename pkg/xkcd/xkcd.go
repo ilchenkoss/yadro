@@ -26,7 +26,7 @@ type OutputStruct struct {
 
 func Xkcd(args OutputStruct) {
 
-	scrapeData := scraper.Scrape(args.DatabasePath,
+	scrapeData, scrapeScore := scraper.Scrape(args.DatabasePath,
 		args.EDBPath,
 		args.TempDir,
 		args.TempFolderPattern,
