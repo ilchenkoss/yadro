@@ -25,11 +25,14 @@ both
 but
 by
 can
+can't
 could
 did
+didn't
 don't
 do
 does
+doesn't
 doing
 down
 during
@@ -40,6 +43,7 @@ few
 for
 from
 further
+got
 had
 has
 have
@@ -76,6 +80,7 @@ its
 itself
 just
 let's
+let
 may
 maybe
 me
@@ -138,7 +143,6 @@ those
 through
 to
 too
-under
 until
 up
 very
