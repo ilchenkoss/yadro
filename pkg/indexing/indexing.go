@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"myapp/pkg/database"
 	"myapp/pkg/scraper"
 	"myapp/pkg/words"
 	"os"
@@ -12,22 +11,25 @@ import (
 )
 
 const (
-	RelevantFlag = true
-
-	WeightStandard = 1.0
-
 	//ВЕСА ДЛЯ ЗАПРОСА
 	WeightRequestWordIndex     = 0.3 //чем ближе слово к началу, тем больше его вес
 	WeightRequestWordDuplicate = 1.0 //чем чаще слово повторяется, тем больше его вес
 
 	//ВЕСА ДЛЯ ДАННЫХ
-	WeightComicsWordIndex     = 0.2   //чем ближе слово к началу, тем больше его вес
-	WeightComicsWordDuplicate = 2.0   //чем чаще слово повторяется, тем больше его вес
-	WeightComicsActual        = 0.001 //чем больше ID, тем актуальнее комикс
+	WeightComicsWordIndex              = 0.2   //чем ближе слово к началу, тем больше его вес
+	WeightComicsWordDuplicate          = 2.0   //чем чаще слово повторяется, тем больше его вес
+	WeightComicsActual                 = 0.001 //чем больше ID, тем актуальнее комикс
+	WeightComicsWordPositionTitle      = 6.0
+	WeightComicsWordPositionTranscript = 0.9
+	WeightComicsWordPositionAlt        = 0.8
 
 	//ВЕСА ДЛЯ ВЫДАЧИ
-	WeightResponseRelevantCoverage = 10  //вес 100% покрытия комикса ключевыми словами
-	WeightResponseIDIndex          = 0.2 //чем ближе слово к началу, тем больше его вес
+	WeightResponseIDIndex                    = 0.2  //вес позиции комикса в index.json
+	CoverageFlag                             = true // будем ли проверять покрытие комикса запрашиваемыми
+	WeightResponseRelevantCoverage           = 1.5  //вес 100% покрытия комикса запрашиваемыми словами
+	WeightResponseRelevantCoverageTitle      = 1.0
+	WeightResponseRelevantCoverageTranscript = 0.8
+	WeightResponseRelevantCoverageAlt        = 0.7
 )
 
 type IDWeight struct {
@@ -35,26 +37,40 @@ type IDWeight struct {
 	Weight float64
 }
 
+func weightByKeyword(info scraper.KeywordInfo, positionWeight float64) float64 {
+
+	var weight float64
+	weight += WeightComicsWordIndex / math.Log(float64(info.EntryIndex+2))
+	if info.Repeat > 1 {
+		weight += float64(info.Repeat) * WeightComicsWordDuplicate
+	}
+	return weight * positionWeight
+}
+
 func createWeightData(dbData map[int]scraper.ScrapedData) map[string][]IDWeight {
 	//Взвешиваем комиксы и создаем слайс ID, weight
 	weightData := make(map[string][]IDWeight)
-
 	for ID, data := range dbData {
-		if len(data.Keywords) == 0 {
-			continue
-		}
-		for word, wordInfo := range data.Keywords {
 
-			var weight float64
-			weight += WeightComicsWordIndex / math.Log(float64(wordInfo.EntryIndex+2))
-			if wordInfo.Repeat > 1 {
-				weight += float64(wordInfo.Repeat) * WeightComicsWordDuplicate
+		idWeight := IDWeight{ID: ID, Weight: 0}
+
+		for word, sliceWordInfo := range data.Keywords {
+			for _, wordInfo := range sliceWordInfo {
+				if wordInfo.Position == "title" {
+					idWeight.Weight += weightByKeyword(wordInfo, WeightComicsWordPositionTitle)
+				}
+				if wordInfo.Position == "transcript" {
+					idWeight.Weight += weightByKeyword(wordInfo, WeightComicsWordPositionTranscript)
+				}
+				if wordInfo.Position == "alt" {
+					idWeight.Weight += weightByKeyword(wordInfo, WeightComicsWordPositionAlt)
+				}
 			}
-			weight += float64(ID) * WeightComicsActual
-
-			weightData[word] = append(weightData[word], IDWeight{Weight: weight, ID: ID})
+			idWeight.Weight += float64(ID) * WeightComicsActual
+			weightData[word] = append(weightData[word], idWeight)
 		}
 	}
+
 	return weightData
 }
 
@@ -80,6 +96,46 @@ func createIndexData(weightData map[string][]IDWeight) map[string][]int {
 
 	return result
 }
+
+func CreateIndexingDB(dbData map[int]scraper.ScrapedData, indexPath string) map[string][]int {
+
+	weightData := createWeightData(dbData)
+	indexData := createIndexData(weightData)
+
+	//save indexedDB
+	data, _ := json.MarshalIndent(indexData, "", "\t")
+	os.WriteFile(indexPath, data, 0644)
+	return indexData
+}
+
+//func createWordsWeight(weightRequest []WordsWeight, dbData map[int]scraper.ScrapedData) map[string][]int {
+//
+//	result := make(map[string][]IDWeight)
+//
+//	for ID, data := range dbData {
+//		if len(data.Keywords) == 0 {
+//			continue
+//		}
+//		// Проверяем, содержатся ли ключевые слова из weightRequest в Keywords
+//		for _, wordRequestInfo := range weightRequest {
+//			if keyWordInfo, ok := data.Keywords[wordRequestInfo.Word]; ok {
+//				//ID содержит искоме слово
+//				//Создаем Вес для слова
+//				var weight float64
+//				weight += WeightComicsWordIndex / math.Log(float64(keyWordInfo.EntryIndex+2))
+//				if keyWordInfo.Repeat > 1 {
+//					weight += float64(keyWordInfo.Repeat) * WeightComicsWordDuplicate
+//				}
+//				weight += float64(ID) * WeightComicsActual
+//				result[wordRequestInfo.Word] = append(result[wordRequestInfo.Word], IDWeight{ID: ID, Weight: weight})
+//			}
+//		}
+//
+//	}
+//
+//	wordsWeight := createIndexData(result)
+//	return wordsWeight
+//}
 
 type WordsWeight struct {
 	Word   string
@@ -108,12 +164,6 @@ func createWeightRequest(RequestWords map[string]words.KeywordsInfo) []WordsWeig
 	return resultWeightSlice
 }
 
-func createIndexingDB(dbData map[int]scraper.ScrapedData) map[string][]int {
-	weightData := createWeightData(dbData)
-	indexData := createIndexData(weightData)
-	return indexData
-}
-
 func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, dbData map[int]scraper.ScrapedData) []IDWeight {
 
 	//взвешиваем и сортируем комиксы
@@ -124,7 +174,7 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 
 	//создание веса ID на основе позиции в index.json
 	for _, indexedRequestWord := range indexRequest {
-		if RelevantFlag {
+		if CoverageFlag {
 			competitiveWords[indexedRequestWord.Word] = true
 		}
 
@@ -137,18 +187,67 @@ func createWeightComics(indexData map[string][]int, indexRequest []WordsWeight, 
 	//Преобразование результатов в slice для последующей сортировки и коррекция веса по заполнению ключевыми словами у комикса
 	for ID, weight := range competitiveIDs {
 
-		if RelevantFlag {
+		if CoverageFlag {
+
 			//коррекция веса по заполнению ключевыми словами у комикса
-			relevantWord := 0
-			for word := range dbData[ID].Keywords {
+
+			relevantWordTitle := 0
+			countWordTitle := 0
+			relevantWordTranscript := 0
+			countWordTranscript := 0
+			relevantWordAlt := 0
+			countWordAlt := 0
+
+			for word, sliceWordInfo := range dbData[ID].Keywords {
+
 				_, ok := competitiveWords[word]
-				if ok {
-					relevantWord++
+
+				for _, wordInfo := range sliceWordInfo {
+					if wordInfo.Position == "title" {
+						if ok {
+							relevantWordTitle += wordInfo.Repeat
+						}
+						countWordTitle += wordInfo.Repeat
+					}
+					if wordInfo.Position == "transcript" {
+						if ok {
+							relevantWordTranscript += wordInfo.Repeat
+						}
+						countWordTranscript += wordInfo.Repeat
+					}
+					if wordInfo.Position == "alt" {
+						if ok {
+							relevantWordAlt += wordInfo.Repeat
+						}
+						countWordAlt += wordInfo.Repeat
+					}
 				}
 			}
-			weight += float64((relevantWord / len(dbData[ID].Keywords)) * WeightResponseRelevantCoverage)
-		}
 
+			if countWordTitle > 0 {
+				coverage := float64(relevantWordTitle / countWordTitle)
+				if coverage > 1 {
+					coverage = 1
+				}
+				weight += coverage * WeightResponseRelevantCoverage * WeightResponseRelevantCoverageTitle
+			}
+			if countWordTranscript > 0 {
+				coverage := float64(relevantWordTranscript / countWordTranscript)
+				if coverage > 1 {
+					coverage = 1
+				}
+				weight += coverage * WeightResponseRelevantCoverage * WeightResponseRelevantCoverageTranscript
+			}
+			if countWordAlt > 0 {
+				coverage := float64(relevantWordAlt / countWordAlt)
+				if coverage > 1 {
+					coverage = 1
+				}
+				weight += coverage * WeightResponseRelevantCoverage * WeightResponseRelevantCoverageAlt
+			}
+
+		}
+		fmt.Println(ID, weight)
 		result = append(result, IDWeight{ID: ID, Weight: weight})
 	}
 

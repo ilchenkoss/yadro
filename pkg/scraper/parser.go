@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"encoding/json"
-	"fmt"
 	"myapp/pkg/words"
 	"sync"
 )
@@ -23,15 +22,25 @@ func codeFileData(bytesData map[int]ScrapedData) []byte {
 	return data
 }
 
+type KeywordInfo struct {
+	Repeat     int
+	EntryIndex int
+	Position   string
+}
+
 type ScrapedData struct {
-	Keywords map[string]words.KeywordsInfo `json:"keywords"`
-	Url      string                        `json:"url"`
+	Keywords map[string][]KeywordInfo `json:"keywords"`
+	Url      string                   `json:"url"`
 }
+
 type ParsedData struct {
-	ID       int                           `json:"id"`
-	Keywords map[string]words.KeywordsInfo `json:"keywords"`
-	Url      string                        `json:"url"`
+	ID                 int                           `json:"id"`
+	KeywordsTitle      map[string]words.KeywordsInfo `json:"keywords_title"`
+	KeywordsTranscript map[string]words.KeywordsInfo `json:"keywords_transcript"`
+	KeywordsAlt        map[string]words.KeywordsInfo `json:"keywords_alt"`
+	Url                string                        `json:"url"`
 }
+
 type ResponseData struct {
 	Alt        string `json:"alt"`
 	Transcript string `json:"transcript"`
@@ -42,30 +51,50 @@ type ResponseData struct {
 
 func responseParser(data []byte) (ParsedData, error) {
 
-	var response = ResponseData{}
+	var response ResponseData
 	err := json.Unmarshal(data, &response)
 	if err != nil {
 		return ParsedData{}, err
 	}
 
-	responseWords := fmt.Sprintf("%s %s %s", response.Title, response.Transcript, response.Alt)
-
 	result := ParsedData{
-		ID:       response.ID,
-		Keywords: words.StringNormalization(responseWords),
-		Url:      response.Img,
+		ID:                 response.ID,
+		KeywordsTitle:      words.StringNormalization(response.Title),
+		KeywordsTranscript: words.StringNormalization(response.Transcript),
+		KeywordsAlt:        words.StringNormalization(response.Alt),
+		Url:                response.Img,
 	}
 
 	return result, nil
 }
 
+func mergeWords(keywordsTitle map[string]words.KeywordsInfo, keywordsTranscript map[string]words.KeywordsInfo, keywordsAlt map[string]words.KeywordsInfo) map[string][]KeywordInfo {
+	mergedMap := make(map[string][]KeywordInfo)
+
+	for word, wordInfo := range keywordsTitle {
+		mergedMap[word] = append(mergedMap[word], KeywordInfo{Repeat: wordInfo.Repeat, EntryIndex: wordInfo.EntryIndex, Position: "title"})
+	}
+
+	for word, wordInfo := range keywordsTranscript {
+		mergedMap[word] = append(mergedMap[word], KeywordInfo{Repeat: wordInfo.Repeat, EntryIndex: wordInfo.EntryIndex, Position: "transcript"})
+	}
+
+	for word, wordInfo := range keywordsAlt {
+		mergedMap[word] = append(mergedMap[word], KeywordInfo{Repeat: wordInfo.Repeat, EntryIndex: wordInfo.EntryIndex, Position: "alt"})
+	}
+
+	return mergedMap
+}
+
 func parserWorker(dbData map[int]ScrapedData, goodScrapesCh chan []byte, pwg *sync.WaitGroup, resultCh chan map[int]ScrapedData) {
 
 	for scrape := range goodScrapesCh {
+
 		data, err := responseParser(scrape)
+
 		if err == nil {
 			dbData[data.ID] = ScrapedData{
-				Keywords: data.Keywords,
+				Keywords: mergeWords(data.KeywordsTitle, data.KeywordsTranscript, data.KeywordsAlt),
 				Url:      data.Url,
 			}
 		}
