@@ -34,11 +34,11 @@ func Scrape(dbPath string,
 	requestRetries int,
 	parallel int,
 	scrapeCtx context.Context,
-	ScrapeCtxCancel context.CancelFunc) {
+	ScrapeCtxCancel context.CancelFunc) (map[int]ScrapedData, int) {
 
 	//data from db
 	dbDataBytes := database.ReadBytesFromFile(dbPath)
-	dbData := decodeFileData(dbDataBytes)
+	dbData := DecodeFileData(dbDataBytes)
 
 	//check temp files
 	temp := database.FoundTemp(tempDirPath, tempFolderPattern, tempFilePattern)
@@ -51,7 +51,7 @@ func Scrape(dbPath string,
 
 	//scrape new data
 	startTime := time.Now()
-	scrapedData := ScrapePuppeteer(parallel, requestRetries, existIDs, scrapeLimit, dbData, actualTempPath, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
+	scrapedData, scrapeScore := ScrapePuppeteer(parallel, requestRetries, existIDs, scrapeLimit, dbData, actualTempPath, tempFilePattern, temp.TempPaths, scrapeCtx, ScrapeCtxCancel)
 	endTime := time.Now()
 	fmt.Printf("\nScrape time: %v\n", endTime.Sub(startTime))
 
@@ -67,7 +67,7 @@ func Scrape(dbPath string,
 		}
 		os.RemoveAll(actualTempPath)
 	}
-	return
+	return scrapedData, scrapeScore
 }
 
 func appendIDs(jobs chan int, scrapeLimit int, existIDs map[int]bool, scrapeCtx context.Context) {
@@ -100,12 +100,15 @@ func ScrapePuppeteer(parallel int,
 	tempFilePattern string,
 	existedTempFiles map[string][]string,
 	scrapeCtx context.Context,
-	scrapeCtxCancel context.CancelFunc) map[int]ScrapedData {
+	scrapeCtxCancel context.CancelFunc) (map[int]ScrapedData, int) {
 
 	// Create buffered channels for jobs and results
 	jobs := make(chan int, 1)
 	goodScrapesCh := make(chan []byte, 1)
 	resultCh := make(chan map[int]ScrapedData, 1)
+
+	// add ScrapeScore
+	scrapeScore := 0
 
 	// Set scraper WaitGroup
 	var swg sync.WaitGroup
@@ -132,7 +135,7 @@ func ScrapePuppeteer(parallel int,
 	}()
 
 	// Create parser worker
-	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh)
+	go parserWorker(dbData, goodScrapesCh, &pwg, resultCh, &scrapeScore)
 
 	// Append IDs to jobs
 	go appendIDs(jobs, scrapeLimit, existIDs, scrapeCtx)
@@ -149,9 +152,11 @@ func ScrapePuppeteer(parallel int,
 	result := <-resultCh
 	close(resultCh)
 
-	fmt.Printf("\nsuccessful results collected: %d", len(result))
+	if scrapeScore > 0 {
+		fmt.Printf("\nsuccessful results collected: %d", scrapeScore)
+	}
 
-	return result
+	return result, scrapeScore
 }
 
 func scrapeWorker(retries int,

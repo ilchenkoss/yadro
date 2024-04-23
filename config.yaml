@@ -6,6 +6,7 @@ scrape:
 
 database:
   db_path : "./pkg/database/database.json"
+  index_path : "./pkg/database/index.json"
   temp_dir : "./pkg/database/"
   temp_folder_pattern : "temp_xkcd_"
   temp_file_pattern : "response_xkcd" # do not use "-" symbol

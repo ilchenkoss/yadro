@@ -7,7 +7,6 @@ import (
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -21,6 +20,7 @@ type Config struct {
 	} `yaml:"scrape"`
 	Database struct {
 		DBPath            string `yaml:"db_path"`
+		IndexPath         string `yaml:"index_path"`
 		TempDir           string `yaml:"temp_dir"`
 		TempFolderPattern string `yaml:"temp_folder_pattern"`
 		TempFilePattern   string `yaml:"temp_file_pattern"`
@@ -49,33 +49,23 @@ func loadConfig(configPath string) Config {
 	return config
 }
 
-func addInterruptHandling(ScrapeCtxCancel context.CancelFunc) {
-	sign := make(chan os.Signal, 1)
-
-	//select incoming signals
-	signal.Notify(sign, os.Interrupt)
-
-	go func() {
-		//wait interrupt
-		<-sign
-		//change condition
-		ScrapeCtxCancel()
-		fmt.Println("\nInterrupt. Stopping scrape...")
-
-		//add emergency exit
-		time.Sleep(10 * time.Second)
-		os.Exit(1)
-	}()
-}
-
 func main() {
 
 	scrapeCtx, scrapeCtxCancel := context.WithCancel(context.Background())
-	addInterruptHandling(scrapeCtxCancel)
+
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
+	go func() {
+		//wait interrupt
+		<-ctx.Done()
+		//change condition
+		scrapeCtxCancel()
+		fmt.Println("\nInterrupt. Stopping scrape...")
+	}()
 
 	//parse flags
 	configPath := flag.String("c", "config.yaml", "path to config *.yaml file")
 	emergencyDBPath := flag.String("e", "./pkg/database/edb.json", "emergency Database path")
+	stringRequest := flag.String("s", "", "string for your request")
 
 	flag.Parse()
 
@@ -98,6 +88,9 @@ func main() {
 
 			ScrapeCtx:       scrapeCtx,
 			ScrapeCtxCancel: scrapeCtxCancel,
+
+			StringRequest: *stringRequest,
+			IndexPath:     config.Database.IndexPath,
 		}
 
 		xkcd.Xkcd(args)

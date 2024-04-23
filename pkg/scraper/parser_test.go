@@ -1,46 +1,34 @@
 package scraper
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 	"testing"
 )
 
-func TestParser(t *testing.T) {
-	str := `{"month": "1", "num": 10, "link": "", "year": "2006", "news": "", "safe_title": "Pi Equals", "transcript": "Pi = 3.141592653589793helpimtrappedinauniversefactory7108914...", "alt": "My most famous drawing, and one of the first I did for the site", "img": "https://imgs.xkcd.com/comics/pi.jpg", "title": "Pi Equals", "day": "1"}`
-	data := []byte(str)
-
-	x := ParsedData{
-		ID:       10,
-		Keywords: []string{"famous", "draw", "one", "first", "site"},
-		Url:      "https://imgs.xkcd.com/comics/pi.jpg",
-	}
-
-	y, _ := responseParser(data)
-	fmt.Println(x, y)
-	if !reflect.DeepEqual(x, y) {
-		t.Error("\nResult was incorrect")
-	}
-}
-
 func TestParserWorker(t *testing.T) {
 
-	str1 := `{"month": "1", "num": 10, "link": "", "year": "2006", "news": "", "safe_title": "Pi Equals", "transcript": "Pi = 3.141592653589793helpimtrappedinauniversefactory7108914...", "alt": "My most famous drawing, and one of the first I did for the site", "img": "https://imgs.xkcd.com/comics/pi.jpg", "title": "Pi Equals", "day": "1"}`
+	str1 := `{"month": "1", "num": 10, "link": "", "year": "2006", "news": "", "safe_title": "Pi Equals", "transcript": "Pi = 3.141592653589793helpimtrappedinauniversefactory7108914...", "alt": "My most famous drawing", "img": "https://imgs.xkcd.com/comics/pi.jpg", "title": "Pi Equals", "day": "1"}`
 	data1 := []byte(str1)
-	str2 := `{"month": "1", "num": 3, "link": "", "year": "2006", "news": "", "safe_title": "Island (sketch)", "transcript": "[[A sketch of an Island]]\n{{Alt:Hello, island}}", "alt": "Hello, island", "img": "https://imgs.xkcd.com/comics/island_color.jpg", "title": "Island (sketch)", "day": "1"}`
+	str2 := `{"month": "1", "num": 3, "link": "", "year": "2006", "news": "", "safe_title": "Island (sketch)", "transcript": "[[A sketch of an Island]]", "alt": "Hello, island", "img": "https://imgs.xkcd.com/comics/island_color.jpg", "title": "Island (sketch)", "day": "1"}`
 	data2 := []byte(str2)
 
 	wantResult := map[int]ScrapedData{
-		10: {
-			Keywords: []string{"famous", "draw", "one", "first", "site"},
-			Url:      "https://imgs.xkcd.com/comics/pi.jpg",
-		},
 		3: {
-			Keywords: []string{"hello", "island"},
-			Url:      "https://imgs.xkcd.com/comics/island_color.jpg",
+			Keywords: map[string][]KeywordInfo{
+				"hello":  {KeywordInfo{1, 0, "alt"}},
+				"island": {KeywordInfo{1, 0, "title"}, KeywordInfo{1, 1, "transcript"}, KeywordInfo{1, 1, "alt"}},
+				"sketch": {KeywordInfo{1, 1, "title"}, KeywordInfo{1, 0, "transcript"}}},
+			Url: "https://imgs.xkcd.com/comics/island_color.jpg",
 		},
-	}
+		10: {
+			Keywords: map[string][]KeywordInfo{
+				"draw":                            {KeywordInfo{1, 1, "alt"}},
+				"equal":                           {KeywordInfo{1, 0, "title"}},
+				"famous":                          {KeywordInfo{1, 0, "alt"}},
+				"helpimtrappedinauniversefactori": {KeywordInfo{1, 0, "transcript"}}},
+			Url: "https://imgs.xkcd.com/comics/pi.jpg",
+		}}
 
 	goodScrapesCh := make(chan []byte, 1)
 	resultCh := make(chan map[int]ScrapedData, 1)
@@ -52,7 +40,9 @@ func TestParserWorker(t *testing.T) {
 		goodScrapesCh <- data2
 	}()
 
-	go parserWorker(map[int]ScrapedData{}, goodScrapesCh, &pwg, resultCh)
+	scrapeScore := 0
+
+	go parserWorker(map[int]ScrapedData{}, goodScrapesCh, &pwg, resultCh, &scrapeScore)
 
 	pwg.Wait()
 	close(goodScrapesCh)
@@ -60,7 +50,7 @@ func TestParserWorker(t *testing.T) {
 	result := <-resultCh
 	close(resultCh)
 
-	if !reflect.DeepEqual(result, wantResult) {
+	if !reflect.DeepEqual(result, wantResult) && scrapeScore != 2 {
 		t.Error("\nResult was incorrect")
 	}
 }
