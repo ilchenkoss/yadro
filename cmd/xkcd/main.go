@@ -4,50 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"myapp/cmd"
 	"myapp/pkg/xkcd"
 	"os"
 	"os/signal"
 
 	"gopkg.in/yaml.v3"
 )
-
-type Config struct {
-	Scrape struct {
-		SourceURL        string `yaml:"source_url"`
-		ScrapePagesLimit int    `yaml:"scrape_pages_limit"`
-		RequestRetries   int    `yaml:"request_retries"`
-		Parallel         int    `yaml:"parallel"`
-	} `yaml:"scrape"`
-	Database struct {
-		DBPath            string `yaml:"db_path"`
-		IndexPath         string `yaml:"index_path"`
-		TempDir           string `yaml:"temp_dir"`
-		TempFolderPattern string `yaml:"temp_folder_pattern"`
-		TempFilePattern   string `yaml:"temp_file_pattern"`
-	} `yaml:"database"`
-}
-
-func loadConfig(configPath string) Config {
-
-	//open file
-	file, err := os.Open(configPath)
-	if err != nil {
-		fmt.Println("Error load config:", err)
-		//return Config{} //default config??
-		panic(err)
-	}
-	defer file.Close()
-
-	//decode file
-	var config Config
-	if decodeErr := yaml.NewDecoder(file).Decode(&config); decodeErr != nil {
-		fmt.Println("Error load config:", decodeErr)
-		//return Config{} //default config??
-		panic(decodeErr)
-	}
-
-	return config
-}
 
 func main() {
 
@@ -70,7 +33,7 @@ func main() {
 	flag.Parse()
 
 	// load config
-	config := loadConfig(*configPath)
+	config := cmd.GetConfig(*configPath)
 
 	//check sourceURL
 	if config.Scrape.SourceURL == "https://xkcd.com/" {
