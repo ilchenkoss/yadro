@@ -14,15 +14,15 @@ import (
 
 func main() {
 
-	scrapeCtx, scrapeCtxCancel := context.WithCancel(context.Background())
+	//main context for interrupt
+	ctx, interruptCancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	//children context for scrape condition
+	scrapeCtx, scrapeCtxCancel := context.WithCancel(ctx)
 
-	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 	go func() {
-		//wait interrupt
 		<-ctx.Done()
-		//change condition
-		scrapeCtxCancel()
-		fmt.Println("\nInterrupt. Stopping scrape...")
+		interruptCancel()
+		slog.Error("Interrupt. Stopping scrape...")
 	}()
 
 	//parse flags
