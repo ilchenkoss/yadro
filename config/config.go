@@ -1,4 +1,4 @@
-package cmd
+package config
 
 import (
 	"gopkg.in/yaml.v3"
@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Scrape   ScrapeConfig
-	Database DatabaseConfig
+	Scrape     ScrapeConfig
+	Database   DatabaseConfig
+	HttpServer HttpServer
 }
 
 type ScrapeConfig struct {
@@ -26,6 +27,10 @@ type DatabaseConfig struct {
 	TempFilePattern   string `yaml:"temp_file_pattern"`
 }
 
+type HttpServer struct {
+	Port int `yaml:"port"`
+}
+
 func getDefaultConfig() *Config {
 	slog.Info("Used default Config")
 	return &Config{
@@ -34,11 +39,12 @@ func getDefaultConfig() *Config {
 			ScrapePagesLimit: -1,
 			RequestRetries:   3,
 			Parallel:         50},
-		Database: DatabaseConfig{DBPath: "./pkg/database/database.json",
+		Database: DatabaseConfig{DBPath: "./pkg/database/database.db",
 			IndexPath:         "./pkg/database/index.json",
 			TempDir:           "./pkg/database/",
 			TempFolderPattern: "temp_xkcd_",
 			TempFilePattern:   "response_xkcd"},
+		HttpServer: HttpServer{Port: 222},
 	}
 }
 
