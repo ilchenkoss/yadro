@@ -1,0 +1,19 @@
+scrape:
+  source_url: "https://xkcd.com/"
+  scrape_pages_limit: -1   # -1 -> all pages
+  request_retries: 3
+  parallel : 50
+
+database:
+  database_path : "internal/storage/database.db"
+  database_dsn : "sqlite://internal/storage/database.db"
+  migrations_dsn : "file://internal/storage/migrations"
+
+temp:
+  temp_dir : "./internal/storage/temp"
+  temp_folder_pattern : "temp_xkcd_"
+  temp_file_pattern : "response_xkcd" # do not use "-" symbol
+
+httpserver:
+  host: "127.0.0.1"
+  port: "222"
