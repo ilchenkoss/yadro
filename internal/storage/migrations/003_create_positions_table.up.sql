@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS positions (
-    id TEXT PRIMARY KEY ,
+    id INTEGER PRIMARY KEY ,
     position TEXT
 );

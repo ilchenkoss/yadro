@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS weights (
-    word_id TEXT,
+    word_id INTEGER,
     comic_id INTEGER,
     position_id INTEGER,
     weight REAL,
