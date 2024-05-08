@@ -92,7 +92,6 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	bytes, _ := json.Marshal(newUpdateResponse(true, "Success", insertedCount, comicsCount))
-	w.Write(bytes)
+	json.NewEncoder(w).Encode(newUpdateResponse(true, "Success", insertedCount, comicsCount))
 	return
 }

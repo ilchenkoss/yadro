@@ -44,6 +44,5 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	bytes, _ := json.Marshal(newSearchResponse(true, "Success", pictures))
-	w.Write(bytes)
+	json.NewEncoder(w).Encode(newSearchResponse(true, "Success", pictures))
 }
