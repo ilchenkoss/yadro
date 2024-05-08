@@ -5,6 +5,7 @@ import (
 	"github.com/kljensen/snowball"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 //go:embed wordsToRemove.txt
@@ -88,7 +89,9 @@ func sifting(sliceWords []string, stopWords map[string]bool) []string {
 func StringNormalization(inputString string) map[string]KeywordsInfo {
 
 	//parse string
-	stringFields := strings.Fields(inputString)
+	stringFields := strings.FieldsFunc(inputString, func(r rune) bool {
+		return unicode.IsPunct(r) || unicode.IsSpace(r)
+	})
 	//load stop words
 	stopWords := loadStopWords()
 	//sifting words from garbage
