@@ -1,7 +1,7 @@
-package httprouter
+package httpserver
 
 import (
-	"myapp/internal/adapters/httprouter/handlers"
+	"myapp/internal/adapters/httpserver/handlers"
 	"net/http"
 )
 

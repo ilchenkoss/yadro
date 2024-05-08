@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"myapp/internal/adapters/database"
-	"myapp/internal/adapters/httprouter"
-	"myapp/internal/adapters/httprouter/handlers"
+	"myapp/internal/adapters/httpserver"
+	"myapp/internal/adapters/httpserver/handlers"
 	"myapp/internal/adapters/scraper"
 	"myapp/internal/config"
 	"myapp/internal/core/domain"
-	"myapp/internal/core/service/httpserver"
 	"myapp/internal/core/service/scrape"
 	"myapp/internal/core/service/weight"
 	"myapp/internal/storage"
@@ -62,11 +61,11 @@ func Run(cfg *config.Config) {
 	searchHandler := handlers.NewSearchHandler(dbConnection, weightService)
 
 	//Init Router
-	routerHandlers := &httprouter.Handlers{
+	routerHandlers := &httpserver.Handlers{
 		ScrapeHandler: scrapeHandler,
 		SearchHandler: searchHandler,
 	}
-	router := httprouter.NewRouter(routerHandlers)
+	router := httpserver.NewRouter(routerHandlers)
 
 	//init HttpServer
 	httpCtx := context.Background()
