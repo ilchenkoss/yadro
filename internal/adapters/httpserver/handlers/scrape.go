@@ -8,20 +8,24 @@ import (
 	"myapp/internal/core/port"
 	"myapp/internal/core/util"
 	"net/http"
+	"sync"
 )
 
 type ScrapeHandler struct {
 	ssvc port.ScrapeService
 	wsvc port.WeightService
+	mu   *sync.Mutex
 	db   port.Database
 	ctx  context.Context
 	cfg  *config.Config
 }
 
 func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, db port.Database, ctx context.Context, cfg *config.Config) *ScrapeHandler {
+	var mu sync.Mutex
 	return &ScrapeHandler{
 		ssvc,
 		wsvc,
+		&mu,
 		db,
 		ctx,
 		cfg,
@@ -29,6 +33,13 @@ func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, db port.
 }
 
 func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
+
+	if !sc.mu.TryLock() {
+		slog.Info("Trying to request an update that is already in progress")
+		http.Error(w, "Update already processing", http.StatusInternalServerError)
+		return
+	}
+	defer sc.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 
