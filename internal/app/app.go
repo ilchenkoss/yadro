@@ -54,11 +54,13 @@ func Run(cfg *config.Config) {
 	}
 
 	//Dependency injection
+	limiter := handlers.NewLimiter(&cfg.HttpServer)
+
 	weightService := weight.NewWeightService()
 	scraperClient := scraper.NewScraper(1)
 	scrapeService := scrape.NewScrapeService(ctx, scraperClient, cfg.Scrape)
 	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, dbConnection, ctx, cfg)
-	searchHandler := handlers.NewSearchHandler(dbConnection, weightService)
+	searchHandler := handlers.NewSearchHandler(dbConnection, weightService, limiter)
 
 	//Init Router
 	routerHandlers := &httpserver.Handlers{

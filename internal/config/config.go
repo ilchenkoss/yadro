@@ -33,8 +33,11 @@ type TempConfig struct {
 }
 
 type HttpServerConfig struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
+	Host             string `yaml:"host"`
+	Port             string `yaml:"port"`
+	TokenMaxTime     int    `yaml:"token_max_time"`
+	ConcurrencyLimit int    `yaml:"concurrency_limit"`
+	RateLimit        int    `yaml:"rate_limit"`
 }
 
 func GetConfig(configPath string) (*Config, error) {
