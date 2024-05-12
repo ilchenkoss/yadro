@@ -29,3 +29,17 @@ func newSearchResponse(success bool, message string, fundPictures []string) sear
 		FoundPictures: fundPictures,
 	}
 }
+
+type loginResponse struct {
+	Success bool   `json:"success" example:"true"`
+	Message string `json:"message" example:"Success"`
+	Token   string `json:"token" `
+}
+
+func newLoginResponse(success bool, message string, token string) loginResponse {
+	return loginResponse{
+		Success: success,
+		Message: message,
+		Token:   token,
+	}
+}
