@@ -44,7 +44,7 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Password: reqBody.Password,
 	}
 
-	err := uh.rep.CreateUser(&user)
+	err := uh.svc.Register(&user)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExist) {
 			http.Error(w, "user already exist", http.StatusBadRequest)
