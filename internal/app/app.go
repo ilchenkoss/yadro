@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"myapp/internal/adapters/database"
 	"myapp/internal/adapters/database/repository"
 	"myapp/internal/adapters/httpserver"
 	"myapp/internal/adapters/httpserver/handlers"
+	"myapp/internal/adapters/httpserver/handlers/utils"
 	"myapp/internal/adapters/scraper"
 	"myapp/internal/config"
 	"myapp/internal/core/domain"
@@ -18,7 +20,7 @@ import (
 	"time"
 )
 
-func Run(cfg *config.Config) {
+func Run(cfg *config.Config, superAdminLoginPassword []string) {
 
 	//main context for interrupt
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -53,16 +55,33 @@ func Run(cfg *config.Config) {
 	scraperClient := scraper.NewScraper(1)
 	scrapeService := service.NewScrapeService(ctx, scraperClient, cfg.Scrape)
 	tokenService := service.NewTokenService(cfg.HttpServer)
-	//userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(userRepo, tokenService)
 
-	//AddUsers(userService)
+	//init superAdmin
+	superAdmin := domain.User{
+		Role:     domain.SuperAdmin,
+		Login:    superAdminLoginPassword[0],
+		Password: superAdminLoginPassword[1],
+	}
+	csaErr := userService.RegisterSuperAdmin(&superAdmin)
+	if csaErr != nil && !errors.Is(csaErr, domain.ErrUserAlreadyExist) {
+
+		if errors.Is(csaErr, domain.ErrPasswordIncorrect) ||
+			errors.Is(csaErr, domain.ErrUserNotSuperAdmin) {
+			panic("super admin login or password incorrect")
+		}
+
+		panic(csaErr)
+	}
+	slog.Info("SuperAdmin OK")
 
 	//Handlers dependency injection
 	limiter := utils.NewLimiter(&cfg.HttpServer)
 	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg)
 	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, *limiter)
 	authHandler := handlers.NewAuthHandler(authService)
+	userHandler := handlers.NewUserHandler(userService, userRepo)
 
 	//insert words positions for weights if not exist
 	ipErr := weightsRepo.InsertPositions(&[]domain.Positions{
@@ -77,6 +96,8 @@ func Run(cfg *config.Config) {
 	routerHandlers := &httpserver.Handlers{
 		TokenService:  tokenService,
 		UserRepo:      userRepo,
+		Limiter:       limiter,
+		UserHandler:   userHandler,
 		ScrapeHandler: scrapeHandler,
 		SearchHandler: searchHandler,
 		AuthHandler:   authHandler,

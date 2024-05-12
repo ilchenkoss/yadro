@@ -3,8 +3,9 @@ package domain
 type UserRole string
 
 const (
-	Admin    UserRole = "admin"
-	Ordinary UserRole = "ordinary"
+	Admin      UserRole = "admin"
+	SuperAdmin UserRole = "superAdmin"
+	Ordinary   UserRole = "ordinary"
 )
 
 type User struct {

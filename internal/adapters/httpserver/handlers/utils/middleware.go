@@ -14,7 +14,25 @@ const (
 	authorizationType      = "bearer"
 )
 
-func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService, ur port.UserRepository, next http.HandlerFunc) http.HandlerFunc {
+func LimiterMiddleware(id uint64, limiter *Limiter, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitErr := limiter.Add(id)
+		if limitErr != nil {
+			switch {
+			case errors.Is(limitErr, domain.ErrRateLimitExceeded):
+				http.Error(w, "Requests was exceeded", http.StatusTooManyRequests)
+				return
+			default:
+				http.Error(w, limitErr.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		next(w, r)
+		defer limiter.Done()
+	}
+}
+
+func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService, ur port.UserRepository, l *Limiter, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get(authorizationHeaderKey)
 		if len(authHeader) == 0 {
@@ -64,22 +82,34 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService
 			http.Error(w, "insufficient permissions", http.StatusForbidden)
 			return
 		}
-
-		next(w, r)
+		LimiterMiddleware(user.ID, l, next)(w, r)
 	}
 }
 
-func OrdinaryMiddleware(f http.HandlerFunc, ts port.TokenService, ur port.UserRepository) http.HandlerFunc {
+func OrdinaryMiddleware(f http.HandlerFunc, ts port.TokenService, ur port.UserRepository, l *Limiter) http.HandlerFunc {
 	roles := map[domain.UserRole]bool{
-		domain.Admin:    true,
-		domain.Ordinary: true,
+		domain.Admin:      true,
+		domain.Ordinary:   true,
+		domain.SuperAdmin: true,
 	}
-	return AuthMiddleware(roles, ts, ur, f)
+	return AuthMiddleware(roles, ts, ur, l, f)
 }
 
-func AdminMiddleware(f http.HandlerFunc, ts port.TokenService, ur port.UserRepository) http.HandlerFunc {
+func AdminMiddleware(f http.HandlerFunc, ts port.TokenService, ur port.UserRepository, l *Limiter) http.HandlerFunc {
 	roles := map[domain.UserRole]bool{
-		domain.Admin: true,
+		domain.Admin:      true,
+		domain.SuperAdmin: true,
 	}
-	return AuthMiddleware(roles, ts, ur, f)
+	return AuthMiddleware(roles, ts, ur, l, f)
+}
+
+func SuperAdminMiddleware(f http.HandlerFunc, ts port.TokenService, ur port.UserRepository, l *Limiter) http.HandlerFunc {
+	roles := map[domain.UserRole]bool{
+		domain.SuperAdmin: true,
+	}
+	return AuthMiddleware(roles, ts, ur, l, f)
+}
+
+func GuestMiddleware(f http.HandlerFunc, l *Limiter) http.HandlerFunc {
+	return LimiterMiddleware(0, l, f)
 }

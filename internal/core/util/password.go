@@ -11,12 +11,16 @@ import (
 
 const pepper = "FLmZFKjdPVULACdKBh3&3#"
 
-func HashPassword(password string, salt string) (string, error) {
+func HashPassword(password string, salt string, role domain.UserRole) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(password)
 	buf.WriteString(salt)
 	buf.WriteString(pepper)
-	hashedPassword, err := bcrypt.GenerateFromPassword(buf.Bytes(), bcrypt.DefaultCost)
+	cryptCost := bcrypt.DefaultCost
+	if role == domain.SuperAdmin {
+		cryptCost = 13
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword(buf.Bytes(), cryptCost)
 	if err != nil {
 		return "", err
 	}

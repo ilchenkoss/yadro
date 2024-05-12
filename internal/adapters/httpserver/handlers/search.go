@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"log/slog"
-	"myapp/internal/core/domain"
+	"myapp/internal/adapters/httpserver/handlers/utils"
 	"myapp/internal/core/port"
 	"net/http"
 )
@@ -12,33 +11,18 @@ import (
 type SearchHandler struct {
 	wr port.WeightRepository
 	ws port.WeightService
-	l  *Limiter
 }
 
-func NewSearchHandler(wr port.WeightRepository, ws port.WeightService, l *Limiter) *SearchHandler {
+func NewSearchHandler(wr port.WeightRepository, ws port.WeightService, l utils.Limiter) *SearchHandler {
 	return &SearchHandler{
 		wr,
 		ws,
-		l,
 	}
 }
 
 func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestString := r.URL.Query().Get("search")
-
-	limitErr := s.l.Add(1)
-	if limitErr != nil {
-		switch {
-		case errors.Is(limitErr, domain.ErrRateLimitExceeded):
-			http.Error(w, "Requests was exceeded", http.StatusTooManyRequests)
-			return
-		default:
-			http.Error(w, limitErr.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-	defer s.l.Done()
 
 	requestWeights := s.ws.WeightRequest(requestString)
 
@@ -61,5 +45,5 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newSearchResponse(true, "Success", pictures))
+	json.NewEncoder(w).Encode(utils.NewSearchResponse(true, "Success", pictures))
 }
