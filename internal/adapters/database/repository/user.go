@@ -4,14 +4,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"myapp/internal/adapters/database"
 	"myapp/internal/core/domain"
 )
 
 type UserRepository struct {
-	db *sql.DB
+	db *database.DB
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
+func NewUserRepository(db *database.DB) *UserRepository {
 	return &UserRepository{
 		db,
 	}

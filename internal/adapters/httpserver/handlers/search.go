@@ -10,15 +10,15 @@ import (
 )
 
 type SearchHandler struct {
-	db port.Database
-	w  port.WeightService
+	wr port.WeightRepository
+	ws port.WeightService
 	l  *Limiter
 }
 
-func NewSearchHandler(db port.Database, w port.WeightService, l *Limiter) *SearchHandler {
+func NewSearchHandler(wr port.WeightRepository, ws port.WeightService, l *Limiter) *SearchHandler {
 	return &SearchHandler{
-		db,
-		w,
+		wr,
+		ws,
 		l,
 	}
 }
@@ -40,16 +40,16 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 	defer s.l.Done()
 
-	requestWeights := s.w.WeightRequest(requestString)
+	requestWeights := s.ws.WeightRequest(requestString)
 
-	weights, getWeightsByWordsErr := s.db.GetWeightsByWords(requestWeights)
+	weights, getWeightsByWordsErr := s.wr.GetWeightsByWords(requestWeights)
 	if getWeightsByWordsErr != nil {
 		slog.Error("Error find relevant pictures :", getWeightsByWordsErr)
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	pictures, findRelevantComicsErr := s.w.FindRelevantPictures(requestWeights, weights)
+	pictures, findRelevantComicsErr := s.ws.FindRelevantPictures(requestWeights, weights)
 	if findRelevantComicsErr != nil {
 		slog.Error("Error find relevant pictures :", findRelevantComicsErr)
 		http.Error(w, "Find pictures error", http.StatusInternalServerError)

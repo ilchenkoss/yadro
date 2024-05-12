@@ -1,4 +1,4 @@
-package weight
+package service
 
 import (
 	"math"

@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"myapp/internal/adapters/database"
+	"myapp/internal/adapters/database/repository"
 	"myapp/internal/adapters/httpserver"
 	"myapp/internal/adapters/httpserver/handlers"
 	"myapp/internal/adapters/scraper"
 	"myapp/internal/config"
 	"myapp/internal/core/domain"
-	"myapp/internal/core/service/scrape"
-	"myapp/internal/core/service/weight"
-	"myapp/internal/storage"
+	"myapp/internal/core/service"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,14 +22,6 @@ func Run(cfg *config.Config) {
 
 	//main context for interrupt
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
-
-	//make migrations
-	migrationErr := storage.MakeMigrations(&cfg.Database)
-	if migrationErr != nil {
-		slog.Error("Error make migrations: ", migrationErr)
-		panic(migrationErr)
-	}
-	slog.Info("Migrations ok")
 
 	//start db connection
 	dbConnection, dbConnErr := database.NewConnection(&cfg.Database)
@@ -44,8 +35,37 @@ func Run(cfg *config.Config) {
 	}
 	slog.Info("Connection to DB ok")
 
-	//insert words positions for weights
-	ipErr := dbConnection.InsertPositions(&[]domain.Positions{
+	//make migrations
+	migrationErr := dbConnection.MakeMigrations()
+	if migrationErr != nil {
+		slog.Error("Error make migrations: ", migrationErr)
+		panic(migrationErr)
+	}
+	slog.Info("Migrations ok")
+
+	//Repository dependency injection
+	comicsRepo := repository.NewComicsRepository(dbConnection)
+	userRepo := repository.NewUserRepository(dbConnection)
+	weightsRepo := repository.NewWeightsRepository(dbConnection)
+
+	//Service dependency injection
+	weightService := service.NewWeightService()
+	scraperClient := scraper.NewScraper(1)
+	scrapeService := service.NewScrapeService(ctx, scraperClient, cfg.Scrape)
+	tokenService := service.NewTokenService(cfg.HttpServer)
+	//userService := service.NewUserService(userRepo)
+	authService := service.NewAuthService(userRepo, tokenService)
+
+	//AddUsers(userService)
+
+	//Handlers dependency injection
+	limiter := handlers.NewLimiter(&cfg.HttpServer)
+	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg)
+	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, limiter)
+	authHandler := handlers.NewAuthHandler(authService)
+
+	//insert words positions for weights if not exist
+	ipErr := weightsRepo.InsertPositions(&[]domain.Positions{
 		{ID: 0, Position: "transcript"}, {ID: 1, Position: "alt"}, {ID: 2, Position: "title"},
 	})
 	if ipErr != nil {
@@ -53,19 +73,13 @@ func Run(cfg *config.Config) {
 		panic(ipErr)
 	}
 
-	//Dependency injection
-	limiter := handlers.NewLimiter(&cfg.HttpServer)
-
-	weightService := weight.NewWeightService()
-	scraperClient := scraper.NewScraper(1)
-	scrapeService := scrape.NewScrapeService(ctx, scraperClient, cfg.Scrape)
-	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, dbConnection, ctx, cfg)
-	searchHandler := handlers.NewSearchHandler(dbConnection, weightService, limiter)
-
 	//Init Router
 	routerHandlers := &httpserver.Handlers{
+		TokenService:  tokenService,
+		UserRepo:      userRepo,
 		ScrapeHandler: scrapeHandler,
 		SearchHandler: searchHandler,
+		AuthHandler:   authHandler,
 	}
 	router := httpserver.NewRouter(routerHandlers)
 
@@ -74,6 +88,7 @@ func Run(cfg *config.Config) {
 	httpServer := httpserver.NewEngine(&cfg.HttpServer, router)
 	go func() {
 		//start httpserver
+		slog.Info("Server listening on " + httpServer.Server.Addr)
 		httpServerErr := httpServer.Run()
 		if httpServerErr != nil {
 			slog.Error("Error starting httpServer: ", httpServerErr)
