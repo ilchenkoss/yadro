@@ -19,10 +19,13 @@ func NewUserRepository(db *database.DB) *UserRepository {
 }
 
 func (u *UserRepository) CreateUser(user *domain.User) error {
-	_, err := u.db.Exec("INSERT INTO users (login, password, salt, role) VALUES (?, ?, ?, ?)",
+	res, err := u.db.Exec("INSERT INTO users (login, password, salt, role) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING",
 		user.Login, user.Password, user.Salt, user.Role)
 	if err != nil {
 		return fmt.Errorf("error creating user: %w", err)
+	}
+	if rowsAffected, _ := res.RowsAffected(); rowsAffected == 0 {
+		return domain.ErrUserAlreadyExist
 	}
 	return nil
 }
