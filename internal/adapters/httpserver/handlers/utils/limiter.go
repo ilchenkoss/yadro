@@ -18,10 +18,10 @@ type ConcurrencyLimiter struct {
 }
 
 type RateLimiter struct {
-	UserRequests map[int]UsersRequests
+	UserRequests map[uint64]UsersRequests
 	Limit        int
 	Interval     time.Duration
-	Mutex        sync.Mutex
+	Mutex        *sync.Mutex
 }
 
 type UsersRequests struct {
@@ -44,13 +44,14 @@ func NewConcurrencyLimiter(maxConcurrent int) *ConcurrencyLimiter {
 
 func NewRateLimiter(limit int) *RateLimiter {
 	return &RateLimiter{
-		UserRequests: make(map[int]UsersRequests),
+		UserRequests: make(map[uint64]UsersRequests),
 		Limit:        limit,
 		Interval:     time.Second,
+		Mutex:        &sync.Mutex{},
 	}
 }
 
-func (l *Limiter) Add(id int) error {
+func (l *Limiter) Add(id uint64) error {
 
 	l.rl.Mutex.Lock()
 	defer l.rl.Mutex.Unlock()
