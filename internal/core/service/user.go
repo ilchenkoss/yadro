@@ -28,7 +28,7 @@ func (us *UserService) Register(user *domain.User) error {
 
 	user.Salt = salt
 
-	hashedPassword, ghpErr := util.HashPassword(user.Password, salt)
+	hashedPassword, ghpErr := util.HashPassword(user.Password, salt, user.Role)
 	if ghpErr != nil {
 		return ghpErr
 	}
@@ -46,6 +46,7 @@ func (us *UserService) ToAdmin(user *domain.User) error {
 
 	user, guErr := us.repo.GetUserByLogin(user.Login)
 	if guErr != nil {
+		// domain.ErrUserNotFound
 		return guErr
 	}
 	if user.Role == domain.Admin {
@@ -58,5 +59,49 @@ func (us *UserService) ToAdmin(user *domain.User) error {
 		return usErr
 	}
 
+	return nil
+}
+
+func (us *UserService) RegisterSuperAdmin(user *domain.User) error {
+
+	user.Role = domain.SuperAdmin
+
+	salt, gsErr := util.GenerateSalt(10)
+	if gsErr != nil {
+		return gsErr
+	}
+
+	user.Salt = salt
+
+	hashedPassword, ghpErr := util.HashPassword(user.Password, salt, user.Role)
+	if ghpErr != nil {
+		return ghpErr
+	}
+	userPassword := user.Password
+	user.Password = hashedPassword
+
+	cuErr := us.repo.CreateUser(user)
+	if cuErr != nil {
+		if errors.Is(cuErr, domain.ErrUserAlreadyExist) {
+
+			existUser, guErr := us.repo.GetUserByLogin(user.Login)
+			if guErr != nil {
+				return guErr
+			}
+
+			if existUser.Role != domain.SuperAdmin {
+				return domain.ErrUserNotSuperAdmin
+			}
+
+			cpErr := util.ComparePassword(userPassword, existUser.Salt, existUser.Password)
+			if cpErr != nil {
+				//domain.ErrPasswordIncorrect
+				return cpErr
+			}
+
+			return nil
+		}
+		return cuErr
+	}
 	return nil
 }

@@ -1,14 +1,14 @@
-package handlers
+package utils
 
-type updateResponse struct {
+type UpdateResponse struct {
 	Success     bool   `json:"success" example:"true"`
 	Message     string `json:"message" example:"Success"`
 	NewComics   int    `json:"new_comics" example:"Success"`
 	TotalComics int    `json:"total_comics" example:"Success"`
 }
 
-func newUpdateResponse(success bool, message string, newComics int, totalComics int) updateResponse {
-	return updateResponse{
+func NewUpdateResponse(success bool, message string, newComics int, totalComics int) UpdateResponse {
+	return UpdateResponse{
 		Success:     success,
 		Message:     message,
 		NewComics:   newComics,
@@ -16,28 +16,28 @@ func newUpdateResponse(success bool, message string, newComics int, totalComics 
 	}
 }
 
-type searchResponse struct {
+type SearchResponse struct {
 	Success       bool     `json:"success" example:"true"`
 	Message       string   `json:"message" example:"Success"`
 	FoundPictures []string `json:"found_pictures"`
 }
 
-func newSearchResponse(success bool, message string, fundPictures []string) searchResponse {
-	return searchResponse{
+func NewSearchResponse(success bool, message string, fundPictures []string) SearchResponse {
+	return SearchResponse{
 		Success:       success,
 		Message:       message,
 		FoundPictures: fundPictures,
 	}
 }
 
-type loginResponse struct {
+type LoginResponse struct {
 	Success bool   `json:"success" example:"true"`
 	Message string `json:"message" example:"Success"`
 	Token   string `json:"token" `
 }
 
-func newLoginResponse(success bool, message string, token string) loginResponse {
-	return loginResponse{
+func NewLoginResponse(success bool, message string, token string) LoginResponse {
+	return LoginResponse{
 		Success: success,
 		Message: message,
 		Token:   token,

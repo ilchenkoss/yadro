@@ -1,4 +1,4 @@
-package handlers
+package utils
 
 import (
 	"myapp/internal/config"
@@ -70,6 +70,7 @@ func (l *Limiter) Add(id uint64) error {
 	}
 
 	if userReq.CountRequests >= l.rl.Limit {
+		time.Sleep(time.Duration(5000) * time.Millisecond)
 		return domain.ErrRateLimitExceeded
 	}
 

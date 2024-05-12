@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"myapp/internal/adapters/httpserver/handlers/utils"
 	"myapp/internal/config"
 	"myapp/internal/core/port"
 	"myapp/internal/core/util"
@@ -105,6 +106,6 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newUpdateResponse(true, "Success", insertedCount, comicsCount))
+	json.NewEncoder(w).Encode(utils.NewUpdateResponse(true, "Success", insertedCount, comicsCount))
 	return
 }

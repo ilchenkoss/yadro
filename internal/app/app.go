@@ -59,9 +59,9 @@ func Run(cfg *config.Config) {
 	//AddUsers(userService)
 
 	//Handlers dependency injection
-	limiter := handlers.NewLimiter(&cfg.HttpServer)
+	limiter := utils.NewLimiter(&cfg.HttpServer)
 	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg)
-	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, limiter)
+	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, *limiter)
 	authHandler := handlers.NewAuthHandler(authService)
 
 	//insert words positions for weights if not exist

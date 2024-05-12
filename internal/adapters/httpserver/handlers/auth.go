@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"myapp/internal/adapters/httpserver/handlers/utils"
 	"myapp/internal/core/domain"
 	"myapp/internal/core/port"
 	"net/http"
@@ -47,5 +48,5 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(newLoginResponse(true, "Success", tokenString))
+	json.NewEncoder(w).Encode(utils.NewLoginResponse(true, "Success", tokenString))
 }
