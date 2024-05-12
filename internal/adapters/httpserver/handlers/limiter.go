@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"myapp/internal/config"
+	"myapp/internal/core/domain"
 	"sync"
 	"time"
 )
@@ -28,14 +29,6 @@ type UsersRequests struct {
 	LastRequest   time.Time
 }
 
-type RateLimitExceededError struct {
-	Message string
-}
-
-func (e *RateLimitExceededError) Error() string {
-	return e.Message
-}
-
 func NewLimiter(httpCfg *config.HttpServerConfig) *Limiter {
 	return &Limiter{
 		NewConcurrencyLimiter(httpCfg.ConcurrencyLimit),
@@ -59,7 +52,6 @@ func NewRateLimiter(limit int) *RateLimiter {
 
 func (l *Limiter) Add(id int) error {
 
-	//we can use redis to avoid using map
 	l.rl.Mutex.Lock()
 	defer l.rl.Mutex.Unlock()
 
@@ -77,7 +69,7 @@ func (l *Limiter) Add(id int) error {
 	}
 
 	if userReq.CountRequests >= l.rl.Limit {
-		return &RateLimitExceededError{Message: "Rate limit exceeded"}
+		return domain.ErrRateLimitExceeded
 	}
 
 	l.rl.UserRequests[id] = UsersRequests{
