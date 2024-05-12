@@ -56,11 +56,19 @@ func (ts *TokenService) GetTokenByString(tokenString string) (*jwt.Token, error)
 		return ts.SecretKey, nil
 	})
 
-	switch {
-	case token.Valid:
-		return token, nil
-	case errors.Is(err, jwt.ErrTokenExpired):
-		return nil, domain.ErrTokenExpired
+	if err != nil {
+		switch {
+		case errors.Is(err, jwt.ErrTokenMalformed):
+			return nil, domain.ErrTokenNotValid
+		case errors.Is(err, jwt.ErrTokenExpired):
+			return nil, domain.ErrTokenExpired
+		default:
+			return nil, err
+		}
+	}
+
+	if token == nil {
+		return nil, domain.ErrTokenNotValid
 	}
 
 	return token, err
