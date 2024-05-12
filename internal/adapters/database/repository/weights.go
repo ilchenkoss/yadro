@@ -62,7 +62,6 @@ func (wr *WeightsRepository) GetWeightsByWords(words map[string]float64) (*[]dom
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	fmt.Println(len(weights))
 	return &weights, nil
 }
 
