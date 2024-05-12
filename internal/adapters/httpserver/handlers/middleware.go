@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"log/slog"
 	"myapp/internal/core/domain"
@@ -48,7 +47,7 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService
 			return
 		}
 
-		user, rguErr := ur.GetUserByLogin(context.Background(), userLogin)
+		user, rguErr := ur.GetUserByLogin(userLogin)
 		if rguErr != nil {
 			switch {
 			case errors.Is(rguErr, domain.ErrUserNotFound):

@@ -102,7 +102,7 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	//w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newUpdateResponse(true, "Success", insertedCount, comicsCount))
 	return
 }

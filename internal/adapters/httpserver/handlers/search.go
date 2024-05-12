@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"myapp/internal/core/domain"
 	"myapp/internal/core/port"
 	"net/http"
 )
@@ -28,10 +29,9 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	limitErr := s.l.Add(1)
 	if limitErr != nil {
-		var rle *RateLimitExceededError
 		switch {
-		case errors.As(limitErr, &rle):
-			http.Error(w, rle.Error(), http.StatusTooManyRequests)
+		case errors.Is(limitErr, domain.ErrRateLimitExceeded):
+			http.Error(w, "Requests was exceeded", http.StatusTooManyRequests)
 			return
 		default:
 			http.Error(w, limitErr.Error(), http.StatusInternalServerError)
@@ -60,6 +60,6 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		pictures = pictures[:10]
 	}
 
-	w.WriteHeader(http.StatusOK)
+	//w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newSearchResponse(true, "Success", pictures))
 }

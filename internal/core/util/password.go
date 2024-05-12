@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
+	"myapp/internal/core/domain"
 )
 
 const pepper = "FLmZFKjdPVULACdKBh3&3#"
@@ -27,7 +28,11 @@ func ComparePassword(password string, salt string, hashedPassword string) error 
 	buf.WriteString(password)
 	buf.WriteString(salt)
 	buf.WriteString(pepper)
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), buf.Bytes())
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), buf.Bytes())
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return domain.ErrPasswordIncorrect
+	}
+	return err
 }
 
 func GenerateSalt(length int) (string, error) {
