@@ -14,9 +14,9 @@ const (
 	authorizationType      = "bearer"
 )
 
-func LimiterMiddleware(id uint64, limiter *Limiter, next http.HandlerFunc) http.HandlerFunc {
+func RateLimiterMiddleware(id uint64, l *Limiter, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limitErr := limiter.Add(id)
+		limitErr := l.rl.Add(id)
 		if limitErr != nil {
 			switch {
 			case errors.Is(limitErr, domain.ErrRateLimitExceeded):
@@ -28,12 +28,16 @@ func LimiterMiddleware(id uint64, limiter *Limiter, next http.HandlerFunc) http.
 			}
 		}
 		next(w, r)
-		defer limiter.Done()
 	}
 }
 
 func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService, ur port.UserRepository, l *Limiter, next http.HandlerFunc) http.HandlerFunc {
+
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		l.cl.Add()
+		defer l.cl.Done()
+
 		authHeader := r.Header.Get(authorizationHeaderKey)
 		if len(authHeader) == 0 {
 			http.Error(w, "missing token", http.StatusUnauthorized)
@@ -82,7 +86,7 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService
 			http.Error(w, "insufficient permissions", http.StatusForbidden)
 			return
 		}
-		LimiterMiddleware(user.ID, l, next)(w, r)
+		RateLimiterMiddleware(user.ID, l, next)(w, r)
 	}
 }
 
@@ -111,5 +115,9 @@ func SuperAdminMiddleware(f http.HandlerFunc, ts port.TokenService, ur port.User
 }
 
 func GuestMiddleware(f http.HandlerFunc, l *Limiter) http.HandlerFunc {
-	return LimiterMiddleware(0, l, f)
+	return func(w http.ResponseWriter, r *http.Request) {
+		l.cl.Add()
+		defer l.cl.Done()
+		f(w, r)
+	}
 }

@@ -51,39 +51,40 @@ func NewRateLimiter(limit int) *RateLimiter {
 	}
 }
 
-func (l *Limiter) Add(id uint64) error {
+func (cl *ConcurrencyLimiter) Add() {
+	cl.sem <- struct{}{}
+	cl.wg.Add(1)
+	return
+}
 
-	l.rl.Mutex.Lock()
-	defer l.rl.Mutex.Unlock()
+func (cl *ConcurrencyLimiter) Done() {
+	<-cl.sem
+	cl.wg.Done()
+}
+
+func (rl *RateLimiter) Add(id uint64) error {
+
+	rl.Mutex.Lock()
+	defer rl.Mutex.Unlock()
 
 	now := time.Now()
 
-	userReq, _ := l.rl.UserRequests[id]
-	if now.Sub(userReq.LastRequest) >= l.rl.Interval {
-		l.rl.UserRequests[id] = UsersRequests{
+	userReq, _ := rl.UserRequests[id]
+	if now.Sub(userReq.LastRequest) >= rl.Interval {
+		rl.UserRequests[id] = UsersRequests{
 			CountRequests: 1,
 			LastRequest:   now,
 		}
-		l.cl.sem <- struct{}{}
-		l.cl.wg.Add(1)
 		return nil
 	}
 
-	if userReq.CountRequests >= l.rl.Limit {
-		time.Sleep(time.Duration(5000) * time.Millisecond)
+	if userReq.CountRequests >= rl.Limit {
 		return domain.ErrRateLimitExceeded
 	}
 
-	l.rl.UserRequests[id] = UsersRequests{
+	rl.UserRequests[id] = UsersRequests{
 		CountRequests: userReq.CountRequests + 1,
 		LastRequest:   now,
 	}
-	l.cl.sem <- struct{}{}
-	l.cl.wg.Add(1)
 	return nil
-}
-
-func (l *Limiter) Done() {
-	<-l.cl.sem
-	l.cl.wg.Done()
 }
