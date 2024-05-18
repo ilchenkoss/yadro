@@ -54,7 +54,11 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode("register user successful")
+	encErr := json.NewEncoder(w).Encode("register user successful")
+	if encErr != nil {
+		//nothing
+		return
+	}
 }
 
 func (uh *UserHandler) ToAdmin(w http.ResponseWriter, r *http.Request) {
@@ -85,5 +89,9 @@ func (uh *UserHandler) ToAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode("to admin successful")
+	err := json.NewEncoder(w).Encode("to admin successful")
+	if err != nil {
+		//nothing
+		return
+	}
 }

@@ -92,8 +92,13 @@ func scrapeWorker(
 
 			if statusCode == http.StatusOK {
 
-				temper.SaveTempDataByID(response, ID)
-
+				stdbIDerr := temper.SaveTempDataByID(response, ID)
+				if stdbIDerr != nil {
+					//nothing
+					//literal escape
+					nothing := 0
+					nothing++
+				}
 				var comics Comics
 				err := json.Unmarshal(response, &comics)
 				if err != nil {

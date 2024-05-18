@@ -32,7 +32,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 	}
 	pingErr := dbConnection.Ping()
 	if pingErr != nil {
-		slog.Error("Error ping DB: ", pingErr)
+		slog.Error("Error ping DB: ", "error", pingErr.Error())
 		panic(pingErr)
 	}
 	slog.Info("Connection to DB ok")
@@ -40,7 +40,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 	//make migrations
 	migrationErr := dbConnection.MakeMigrations()
 	if migrationErr != nil {
-		slog.Error("Error make migrations: ", migrationErr)
+		slog.Error("Error make migrations: ", "error", migrationErr.Error())
 		panic(migrationErr)
 	}
 	slog.Info("Migrations ok")
@@ -88,7 +88,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 		{ID: 0, Position: "transcript"}, {ID: 1, Position: "alt"}, {ID: 2, Position: "title"},
 	})
 	if ipErr != nil {
-		slog.Error("Error insert positions: ", ipErr)
+		slog.Error("Error insert positions: ", "error", ipErr.Error())
 		panic(ipErr)
 	}
 
@@ -112,7 +112,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 		slog.Info("Server listening on " + httpServer.Server.Addr)
 		httpServerErr := httpServer.Run()
 		if httpServerErr != nil {
-			slog.Error("Error starting httpServer: ", httpServerErr)
+			slog.Error("Error starting httpServer: ", "error", httpServerErr.Error())
 			panic(httpServerErr)
 		}
 	}()
@@ -150,10 +150,10 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 	<-ctx.Done()
 
 	if ssErr := httpServer.Stop(httpCtx); ssErr != nil {
-		slog.Error("Error shutdown http server: ", ssErr)
+		slog.Error("Error shutdown http server: ", "error", ssErr.Error())
 	}
 
 	if cdbErr := dbConnection.CloseConnection(); cdbErr != nil {
-		slog.Error("Error shutdown database", cdbErr)
+		slog.Error("Error shutdown database", "error", cdbErr.Error())
 	}
 }

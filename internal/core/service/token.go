@@ -33,7 +33,7 @@ func (ts *TokenService) CreateToken(user *domain.User) (string, error) {
 	token := jwt.NewWithClaims(ts.Method, jwt.RegisteredClaims{
 		Subject: user.Login,
 		ExpiresAt: &jwt.NumericDate{
-			time.Now().Add(ts.Duration),
+			Time: time.Now().Add(ts.Duration),
 		},
 	})
 

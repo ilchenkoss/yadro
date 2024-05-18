@@ -49,19 +49,19 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Get missed IDs
 	missedIDs, getMissedIDsErr := sc.cr.GetMissedIDs()
 	if getMissedIDsErr != nil {
-		slog.Error("Error get missed IDs :", getMissedIDsErr)
+		slog.Error("Error get missed IDs :", "error", getMissedIDsErr.Error())
 	}
 
 	// Get max ID
 	maxID, getMaxIDerr := sc.cr.GetMaxID()
 	if getMaxIDerr != nil {
-		slog.Error("Error get max ID :", getMaxIDerr)
+		slog.Error("Error get max ID :", "error", getMaxIDerr.Error())
 	}
 
 	// Init temper
 	temper, tempErr := util.NewTemper(&sc.cfg.Temp)
 	if tempErr != nil {
-		slog.Error("Error init util.temp :", tempErr)
+		slog.Error("Error init util.temp :", "error", tempErr.Error())
 	} else {
 		// temp init ok
 		if temper.MaxTempedID > maxID {
@@ -72,7 +72,7 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Start scrape
 	newComics, scrapeErr := sc.ssvc.Scrape(missedIDs, maxID, temper)
 	if scrapeErr != nil {
-		slog.Error("Error scrape :", scrapeErr)
+		slog.Error("Error scrape :", "error", scrapeErr.Error())
 		http.Error(w, "Update error", http.StatusInternalServerError)
 		return
 	}
@@ -80,19 +80,19 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Write comics to db
 	insertedCount, insertError := sc.cr.InsertComics(&newComics)
 	if insertError != nil {
-		slog.Error("Error insert database :", insertError)
+		slog.Error("Error insert database :", "error", insertError.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 	tempRemoveErr := temper.RemoveTemp()
 	if tempRemoveErr != nil {
-		slog.Error("Error remove temp folder :", tempRemoveErr)
+		slog.Error("Error remove temp folder :", "error", tempRemoveErr.Error())
 	}
 
 	weights := sc.wsvc.WeightComics(newComics)
 	insertWeightsErr := sc.wr.InsertWeights(weights)
 	if insertWeightsErr != nil {
-		slog.Error("Error insert weights: ", insertWeightsErr)
+		slog.Error("Error insert weights: ", "error", insertWeightsErr.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -100,12 +100,15 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Get comics count
 	comicsCount, errGetCount := sc.cr.GetCountComics()
 	if errGetCount != nil {
-		slog.Error("Error get comics count :", errGetCount)
+		slog.Error("Error get comics count :", "error", errGetCount.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	//w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(utils.NewUpdateResponse(true, "Success", insertedCount, comicsCount))
-	return
+	err := json.NewEncoder(w).Encode(utils.NewUpdateResponse(true, "Success", insertedCount, comicsCount))
+	if err != nil {
+		//nothing
+		return
+	}
 }

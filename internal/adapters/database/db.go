@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -42,10 +41,14 @@ func (d *DB) MakeMigrations() error {
 		d.Cfg.DatabaseDSN,
 	)
 
-	defer m.Close()
+	defer func(m *migrate.Migrate) {
+		if cErr, _ := m.Close(); cErr != nil {
+			//nothing
+			return
+		}
+	}(m)
 
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

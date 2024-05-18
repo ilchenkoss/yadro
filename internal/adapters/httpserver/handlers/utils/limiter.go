@@ -54,7 +54,6 @@ func NewRateLimiter(limit int) *RateLimiter {
 func (cl *ConcurrencyLimiter) Add() {
 	cl.sem <- struct{}{}
 	cl.wg.Add(1)
-	return
 }
 
 func (cl *ConcurrencyLimiter) Done() {
@@ -69,7 +68,7 @@ func (rl *RateLimiter) Add(id uint64) error {
 
 	now := time.Now()
 
-	userReq, _ := rl.UserRequests[id]
+	userReq := rl.UserRequests[id]
 	if now.Sub(userReq.LastRequest) >= rl.Interval {
 		rl.UserRequests[id] = UsersRequests{
 			CountRequests: 1,

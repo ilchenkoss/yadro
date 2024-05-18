@@ -80,7 +80,13 @@ func (t *Temper) SaveTempDataByID(data []byte, ID int) error {
 	if createTempErr != nil {
 		return fmt.Errorf("error creating temporary file: %v", createTempErr)
 	}
-	defer tempFile.Close()
+	defer func(tempFile *os.File) {
+		err := tempFile.Close()
+		if err != nil {
+			//nothing
+			return
+		}
+	}(tempFile)
 
 	if _, writeErr := tempFile.Write(data); writeErr != nil {
 		return fmt.Errorf("error writing data to temporary file: %v", writeErr)

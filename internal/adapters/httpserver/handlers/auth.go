@@ -48,5 +48,8 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(utils.NewLoginResponse(true, "Success", tokenString))
+	err := json.NewEncoder(w).Encode(utils.NewLoginResponse(true, "Success", tokenString))
+	if err != nil {
+		return
+	}
 }
