@@ -1,9 +1,22 @@
-test: deps
-	@echo "Running Tests"
-	@go test -v ./...
-server: deps
-	@go build -o xkcd-server ./cmd/xkcd-server
-bench:
-	@go test -bench=. ./pkg/indexing/.
 deps:
 	@go get ./...
+
+test: deps
+	@echo "Running Tests"
+	@mkdir -p coverage
+	@go test -race -coverprofile=coverage/coverage.out ./...
+	@go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+	@go test -v ./...
+lint: deps
+	@echo "Running Linting and Vetting"
+	@gofmt -l .
+	@go vet ./...
+	@sh ./golangci-lint_install.sh > /dev/null 2>&1
+	@./bin/golangci-lint run
+sec: deps
+	@echo "Running Security Checks"
+	@trivy fs . --scanners vuln
+	@govulncheck ./...
+
+server: deps
+	@go build -o xkcd-server ./cmd/xkcd-server
