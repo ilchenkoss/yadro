@@ -41,7 +41,7 @@ func ComparePassword(password string, salt string, hashedPassword string) error 
 
 func GenerateSalt(length int) (string, error) {
 	if length <= 0 {
-		return "", errors.New("length must be a positive integer")
+		return "", domain.ErrLengthMustBePositive
 	}
 
 	byteLength := length * 3 / 4

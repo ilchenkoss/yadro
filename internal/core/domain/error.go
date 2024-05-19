@@ -5,6 +5,8 @@ import "errors"
 var (
 	ErrRateLimitExceeded = errors.New("rate limit exceeded")
 
+	ErrLengthMustBePositive = errors.New("length must be a positive")
+
 	ErrTokenExpired  = errors.New("token expired")
 	ErrTokenNotValid = errors.New("token not valid")
 

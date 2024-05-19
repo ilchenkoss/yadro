@@ -23,6 +23,7 @@ func (us *UserService) Register(user *domain.User) error {
 
 	salt, gsErr := util.GenerateSalt(10)
 	if gsErr != nil {
+		//domain.ErrLengthMustBePositive
 		return gsErr
 	}
 
@@ -68,6 +69,7 @@ func (us *UserService) RegisterSuperAdmin(user *domain.User) error {
 
 	salt, gsErr := util.GenerateSalt(10)
 	if gsErr != nil {
+		//domain.ErrLengthMustBePositive
 		return gsErr
 	}
 

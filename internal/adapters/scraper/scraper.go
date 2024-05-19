@@ -49,7 +49,7 @@ func (s *Scraper) GetResponse(url string, retries int) ([]byte, int, error) {
 			}
 
 			resp.Body.Close()
-			return body, statusCode, err
+			return body, statusCode, nil
 		}
 
 	}

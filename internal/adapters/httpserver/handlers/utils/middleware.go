@@ -73,7 +73,7 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService
 		if rguErr != nil {
 			switch {
 			case errors.Is(rguErr, domain.ErrUserNotFound):
-				slog.Error("Error attempt to log in using a non-existent login. Token: ", fields[1])
+				slog.Error("Error attempt to log in using a non-existent login", slog.String("token", accessToken))
 				http.Error(w, "invalid token", http.StatusUnauthorized)
 				return
 			default:

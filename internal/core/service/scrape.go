@@ -52,14 +52,14 @@ func (s *ScrapeService) Scrape(missedIDs map[int]bool, maxID int, temper *util.T
 	wg.Add(s.scfg.Parallel)
 
 	// Append temped response
-	go appendTempedResponse(&wg, &mu, temper, &result)
+	go AppendTempedResponse(&wg, &mu, temper, &result)
 
 	// Append IDs to scrape
-	go appendIDs(scrapeCtx, scrapeCtxCancel, IDsCh, s.scfg.ScrapePagesLimit, missedIDs, maxID)
+	go AppendIDs(scrapeCtx, scrapeCtxCancel, IDsCh, s.scfg.ScrapePagesLimit, missedIDs, maxID)
 
 	// Create scrape worker goroutines
 	for w := 1; w <= s.scfg.Parallel; w++ {
-		go scrapeWorker(scrapeCtx, scrapeCtxCancel, &wg, &mu, IDsCh, &result, s.scfg.RequestRetries, s.scraper, temper)
+		go ScrapeWorker(scrapeCtx, scrapeCtxCancel, &wg, &mu, IDsCh, &result, s.scfg.RequestRetries, s.scraper, temper)
 	}
 
 	wg.Wait()
@@ -67,7 +67,7 @@ func (s *ScrapeService) Scrape(missedIDs map[int]bool, maxID int, temper *util.T
 	return result, nil
 }
 
-func scrapeWorker(
+func ScrapeWorker(
 	ctx context.Context,
 	scrapeCtxCancel context.CancelFunc,
 
@@ -91,7 +91,6 @@ func scrapeWorker(
 			response, statusCode, _ := scraper.GetResponse(url, retries)
 
 			if statusCode == http.StatusOK {
-
 				stdbIDerr := temper.SaveTempDataByID(response, ID)
 				if stdbIDerr != nil {
 					//nothing
@@ -130,7 +129,7 @@ func scrapeWorker(
 	}
 }
 
-func appendIDs(scrapeCtx context.Context, scrapeCancel context.CancelFunc, IDsCh chan int, scrapeLimit int, missedIDs map[int]bool, lastID int) {
+func AppendIDs(scrapeCtx context.Context, scrapeCancel context.CancelFunc, IDsCh chan int, scrapeLimit int, missedIDs map[int]bool, lastID int) {
 
 	ID := 1
 	for {
@@ -159,14 +158,13 @@ func appendIDs(scrapeCtx context.Context, scrapeCancel context.CancelFunc, IDsCh
 	}
 }
 
-func appendTempedResponse(wg *sync.WaitGroup, mu *sync.Mutex, temper *util.Temper, result *[]domain.Comics) {
+func AppendTempedResponse(wg *sync.WaitGroup, mu *sync.Mutex, temper *util.Temper, result *[]domain.Comics) {
 	for tempFile := range temper.TempFiles {
 
 		wg.Add(1)
 
 		filePath := fmt.Sprintf("%s/%s", temper.TempDir, tempFile)
 		tempData := temper.ReadTempFile(filePath)
-
 		var comics Comics
 		err := json.Unmarshal(tempData, &comics)
 		if err != nil {
