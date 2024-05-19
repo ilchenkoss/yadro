@@ -59,7 +59,8 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Init temper
-	temper, tempErr := util.NewTemper(&sc.cfg.Temp)
+	fs := util.OSFileSystem{}
+	temper, tempErr := util.NewTemper(&sc.cfg.Temp, fs)
 	if tempErr != nil {
 		slog.Error("Error init util.temp :", "error", tempErr.Error())
 	} else {
