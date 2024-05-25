@@ -7,7 +7,6 @@ scrape:
 database:
   database_path : "internal/storage/database.db"
   database_dsn : "sqlite://internal/storage/database.db"
-  migrations_dsn : "file://internal/storage/migrations"
 
 temp:
   temp_dir : "./internal/storage/temp"

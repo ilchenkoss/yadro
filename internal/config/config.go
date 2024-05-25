@@ -21,9 +21,8 @@ type ScrapeConfig struct {
 }
 
 type DatabaseConfig struct {
-	DatabasePath  string `yaml:"database_path"`
-	DatabaseDSN   string `yaml:"database_dsn"`
-	MigrationsDSN string `yaml:"migrations_dsn"`
+	DatabasePath string `yaml:"database_path"`
+	DatabaseDSN  string `yaml:"database_dsn"`
 }
 
 type TempConfig struct {
