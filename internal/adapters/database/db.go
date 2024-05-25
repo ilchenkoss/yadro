@@ -2,12 +2,17 @@ package database
 
 import (
 	"database/sql"
+	"embed"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
 	"myapp/internal/config"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 type DB struct {
 	*sql.DB
@@ -36,10 +41,12 @@ func (d *DB) CloseConnection() error {
 
 func (d *DB) MakeMigrations() error {
 
-	m, err := migrate.New(
-		d.Cfg.MigrationsDSN,
-		d.Cfg.DatabaseDSN,
-	)
+	srcDriver, drErr := iofs.New(migrationsFS, "migrations")
+	if drErr != nil {
+		return drErr
+	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", srcDriver, d.Cfg.DatabaseDSN)
 
 	defer func(m *migrate.Migrate) {
 		if cErr, _ := m.Close(); cErr != nil {
