@@ -64,7 +64,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 		Login:    superAdminLoginPassword[0],
 		Password: superAdminLoginPassword[1],
 	}
-	csaErr := userService.RegisterSuperAdmin(&superAdmin)
+	_, csaErr := userService.RegisterSuperAdmin(&superAdmin)
 	if csaErr != nil && !errors.Is(csaErr, domain.ErrUserAlreadyExist) {
 
 		if errors.Is(csaErr, domain.ErrPasswordIncorrect) ||

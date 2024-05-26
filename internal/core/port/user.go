@@ -11,7 +11,7 @@ type UserRepository interface {
 }
 
 type UserService interface {
-	Register(user *domain.User) error
-	ToAdmin(user *domain.User) error
-	RegisterSuperAdmin(user *domain.User) error
+	Register(user *domain.User) (*domain.User, error)
+	ToAdmin(user *domain.User) (*domain.User, error)
+	RegisterSuperAdmin(user *domain.User) (*domain.User, error)
 }

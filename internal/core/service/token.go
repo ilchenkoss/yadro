@@ -46,11 +46,7 @@ func (ts *TokenService) CreateToken(user *domain.User) (string, error) {
 
 }
 
-func (ts *TokenService) GetUserByToken(token *jwt.Token) (string, error) {
-	return token.Claims.GetSubject()
-}
-
-func (ts *TokenService) GetTokenByString(tokenString string) (*jwt.Token, error) {
+func (ts *TokenService) GetUserByTokenString(tokenString string) (string, error) {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return ts.SecretKey, nil
@@ -59,17 +55,17 @@ func (ts *TokenService) GetTokenByString(tokenString string) (*jwt.Token, error)
 	if err != nil {
 		switch {
 		case errors.Is(err, jwt.ErrTokenMalformed):
-			return nil, domain.ErrTokenNotValid
+			return "", domain.ErrTokenNotValid
 		case errors.Is(err, jwt.ErrTokenExpired):
-			return nil, domain.ErrTokenExpired
+			return "", domain.ErrTokenExpired
 		default:
-			return nil, err
+			return "", err
 		}
 	}
 
 	if token == nil {
-		return nil, domain.ErrTokenNotValid
+		return "", domain.ErrTokenNotValid
 	}
 
-	return token, err
+	return token.Claims.GetSubject()
 }

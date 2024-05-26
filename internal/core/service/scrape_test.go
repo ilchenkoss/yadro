@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
-	mockAdapterScraper "myapp/internal/adapters/scraper/mock"
 	"myapp/internal/config"
 	"myapp/internal/core/domain"
+	"myapp/internal/core/port/mock"
 	"myapp/internal/core/util"
 	mockUtil "myapp/internal/core/util/mock"
 	"slices"
@@ -17,7 +17,7 @@ import (
 )
 
 func TestScrapeService_Scrape(t *testing.T) {
-	mockScraper := new(mockAdapterScraper.MockScraper)
+	mockScraper := new(mock.MockScraper)
 	ctx := context.Background()
 	scrapeConfig := config.ScrapeConfig{
 		Parallel:         5,
@@ -201,7 +201,7 @@ func TestScrapeWorker(t *testing.T) {
 			IDsChan := make(chan int, 1)
 			result := &[]domain.Comics{}
 
-			mockScraper := new(mockAdapterScraper.MockScraper)
+			mockScraper := new(mock.MockScraper)
 			mockOSFileSystem := mockUtil.MockOSFileSystem{
 				Mfs: fstest.MapFS{},
 			}

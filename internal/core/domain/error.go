@@ -10,6 +10,8 @@ var (
 	ErrTokenExpired  = errors.New("token expired")
 	ErrTokenNotValid = errors.New("token not valid")
 
+	ErrUserAlreadyAdmin = errors.New("user role already Admin")
+
 	ErrUserNotFound      = errors.New("user not found")
 	ErrUserAlreadyExist  = errors.New("user already exist")
 	ErrUserNotSuperAdmin = errors.New("user not super admin")
