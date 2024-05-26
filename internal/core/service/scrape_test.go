@@ -61,16 +61,24 @@ func TestAppendIDs(t *testing.T) {
 	wg.Add(scrapeLimit)
 
 	go func() {
-		for {
-			select {
-			case id := <-IDsCh:
-				mu.Lock()
-				ids = append(ids, id)
-				mu.Unlock()
-				assert.False(t, len(ids) > scrapeLimit)
-				wg.Done()
-			}
+		for i := 0; i < 10000; i++ {
+			id := <-IDsCh
+			mu.Lock()
+			ids = append(ids, id)
+			mu.Unlock()
+			assert.False(t, len(ids) > scrapeLimit)
+			wg.Done()
 		}
+		//for {
+		//	select {
+		//	case id := <-IDsCh:
+		//		mu.Lock()
+		//		ids = append(ids, id)
+		//		mu.Unlock()
+		//		assert.False(t, len(ids) > scrapeLimit)
+		//		wg.Done()
+		//	}
+		//}
 	}()
 
 	wg.Wait()

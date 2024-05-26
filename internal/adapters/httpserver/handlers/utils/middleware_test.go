@@ -18,7 +18,10 @@ func TestAuthMiddleware(t *testing.T) {
 
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Success"))
+		_, err := w.Write([]byte("Success"))
+		if err != nil {
+			return
+		}
 	})
 
 	tests := []struct {

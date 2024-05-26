@@ -19,7 +19,10 @@ func TestScraper_GetResponse_Success(t *testing.T) {
 	expectedBody := "Hello, World!"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedBody))
+		_, err := w.Write([]byte(expectedBody))
+		if err != nil {
+			return
+		}
 	})
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -41,7 +44,10 @@ func TestScraper_GetResponse_Retry(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Hello, Retry!"))
+			_, err := w.Write([]byte("Hello, Retry!"))
+			if err != nil {
+				return
+			}
 		}
 	})
 

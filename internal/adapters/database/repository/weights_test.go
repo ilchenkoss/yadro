@@ -52,9 +52,9 @@ func TestWeightsRepository(t *testing.T) {
 	wRepo := NewWeightsRepository(db)
 	assert.NotNil(t, wRepo)
 
-	posTitle := domain.Positions{1, "title"}
-	posAlt := domain.Positions{2, "alt"}
-	posTranscript := domain.Positions{3, "transcript"}
+	posTitle := domain.Positions{ID: 1, Position: "title"}
+	posAlt := domain.Positions{ID: 2, Position: "alt"}
+	posTranscript := domain.Positions{ID: 3, Position: "transcript"}
 
 	positions := []domain.Positions{posTitle, posAlt, posTranscript}
 	ipErr := wRepo.InsertPositions(&positions)
