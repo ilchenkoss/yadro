@@ -14,6 +14,7 @@ import (
 	"myapp/internal/config"
 	"myapp/internal/core/domain"
 	"myapp/internal/core/service"
+	"myapp/internal/core/util"
 	"net/http"
 	"os"
 	"os/signal"
@@ -78,7 +79,8 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 
 	//Handlers dependency injection
 	limiter := utils.NewLimiter(&cfg.HttpServer)
-	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg)
+	fs := util.OSFileSystem{}
+	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg, fs)
 	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, *limiter)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService, userRepo)

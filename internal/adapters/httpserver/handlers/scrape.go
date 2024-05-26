@@ -20,9 +20,10 @@ type ScrapeHandler struct {
 	wr   port.WeightRepository
 	ctx  context.Context
 	cfg  *config.Config
+	fs   util.FileSystem
 }
 
-func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, cr port.ComicsRepository, wr port.WeightRepository, ctx context.Context, cfg *config.Config) *ScrapeHandler {
+func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, cr port.ComicsRepository, wr port.WeightRepository, ctx context.Context, cfg *config.Config, fs util.FileSystem) *ScrapeHandler {
 	var mu sync.Mutex
 	return &ScrapeHandler{
 		ssvc,
@@ -32,6 +33,7 @@ func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, cr port.
 		wr,
 		ctx,
 		cfg,
+		fs,
 	}
 }
 
@@ -59,8 +61,7 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Init temper
-	fs := util.OSFileSystem{}
-	temper, tempErr := util.NewTemper(&sc.cfg.Temp, fs)
+	temper, tempErr := util.NewTemper(&sc.cfg.Temp, sc.fs)
 	if tempErr != nil {
 		slog.Error("Error init util.temp :", "error", tempErr.Error())
 	} else {
