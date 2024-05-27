@@ -14,7 +14,6 @@ type Limiter struct {
 
 type ConcurrencyLimiter struct {
 	sem chan struct{}
-	wg  sync.WaitGroup
 }
 
 type RateLimiter struct {
@@ -53,12 +52,10 @@ func NewRateLimiter(limit int) *RateLimiter {
 
 func (cl *ConcurrencyLimiter) Add() {
 	cl.sem <- struct{}{}
-	cl.wg.Add(1)
 }
 
 func (cl *ConcurrencyLimiter) Done() {
 	<-cl.sem
-	cl.wg.Done()
 }
 
 func (rl *RateLimiter) Add(id uint64) error {
