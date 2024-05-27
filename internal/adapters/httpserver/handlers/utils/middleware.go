@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"log/slog"
 	"myapp/internal/core/domain"
 	"myapp/internal/core/port"
 	"net/http"
@@ -69,7 +70,7 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService
 		if rguErr != nil {
 			switch {
 			case errors.Is(rguErr, domain.ErrUserNotFound):
-				//slog.Error("Error attempt to log in using a non-existent login", slog.String("token", accessToken))
+				slog.Error("Error attempt to log in using a non-existent login", slog.String("token", accessToken))
 				http.Error(w, "invalid token", http.StatusUnauthorized)
 				return
 			default:
