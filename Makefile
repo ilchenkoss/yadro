@@ -11,6 +11,7 @@ lint: deps
 	@echo "Running Linting and Vetting"
 	@gofmt -l .
 	@go vet -v ./...
+	@sh golangci-lint_install.sh
 	@./bin/golangci-lint run -v
 sec: deps
 	@echo "Running Security Checks"
