@@ -10,9 +10,8 @@ test: deps
 lint: deps
 	@echo "Running Linting and Vetting"
 	@gofmt -l .
-	@go vet ./...
-	@sh ./golangci-lint_install.sh > /dev/null 2>&1
-	@./bin/golangci-lint run
+	@go vet -v ./...
+	@./bin/golangci-lint run -v
 sec: deps
 	@echo "Running Security Checks"
 	@trivy fs . --scanners vuln
@@ -20,3 +19,6 @@ sec: deps
 
 server: deps
 	@go build -o xkcd-server ./cmd/xkcd-server
+
+e2e: server
+	@sudo sh ./e2e_test.sh
