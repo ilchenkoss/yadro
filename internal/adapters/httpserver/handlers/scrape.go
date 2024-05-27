@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"myapp/internal/adapters/httpserver/handlers/utils"
 	"myapp/internal/config"
 	"myapp/internal/core/port"
 	"myapp/internal/core/util"
@@ -15,18 +16,20 @@ type ScrapeHandler struct {
 	ssvc port.ScrapeService
 	wsvc port.WeightService
 	mu   *sync.Mutex
-	db   port.Database
+	cr   port.ComicsRepository
+	wr   port.WeightRepository
 	ctx  context.Context
 	cfg  *config.Config
 }
 
-func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, db port.Database, ctx context.Context, cfg *config.Config) *ScrapeHandler {
+func NewScrapeHandler(ssvc port.ScrapeService, wsvc port.WeightService, cr port.ComicsRepository, wr port.WeightRepository, ctx context.Context, cfg *config.Config) *ScrapeHandler {
 	var mu sync.Mutex
 	return &ScrapeHandler{
 		ssvc,
 		wsvc,
 		&mu,
-		db,
+		cr,
+		wr,
 		ctx,
 		cfg,
 	}
@@ -44,13 +47,13 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Get missed IDs
-	missedIDs, getMissedIDsErr := sc.db.GetMissedIDs()
+	missedIDs, getMissedIDsErr := sc.cr.GetMissedIDs()
 	if getMissedIDsErr != nil {
 		slog.Error("Error get missed IDs :", getMissedIDsErr)
 	}
 
 	// Get max ID
-	maxID, getMaxIDerr := sc.db.GetMaxID()
+	maxID, getMaxIDerr := sc.cr.GetMaxID()
 	if getMaxIDerr != nil {
 		slog.Error("Error get max ID :", getMaxIDerr)
 	}
@@ -75,7 +78,7 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write comics to db
-	insertedCount, insertError := sc.db.InsertComics(&newComics)
+	insertedCount, insertError := sc.cr.InsertComics(&newComics)
 	if insertError != nil {
 		slog.Error("Error insert database :", insertError)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -87,7 +90,7 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	weights := sc.wsvc.WeightComics(newComics)
-	insertWeightsErr := sc.db.InsertWeights(weights)
+	insertWeightsErr := sc.wr.InsertWeights(weights)
 	if insertWeightsErr != nil {
 		slog.Error("Error insert weights: ", insertWeightsErr)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -95,14 +98,14 @@ func (sc *ScrapeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get comics count
-	comicsCount, errGetCount := sc.db.GetCountComics()
+	comicsCount, errGetCount := sc.cr.GetCountComics()
 	if errGetCount != nil {
 		slog.Error("Error get comics count :", errGetCount)
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newUpdateResponse(true, "Success", insertedCount, comicsCount))
+	//w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(utils.NewUpdateResponse(true, "Success", insertedCount, comicsCount))
 	return
 }

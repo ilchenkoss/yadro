@@ -3,7 +3,6 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"myapp/internal/config"
 	"net/http"
 )
@@ -28,7 +27,6 @@ func NewEngine(cfg *config.HttpServerConfig, router *http.ServeMux) *Engine {
 
 func (engine *Engine) Run() error {
 
-	slog.Info("Server listening on " + engine.Server.Addr)
 	errServer := engine.Server.ListenAndServe()
 
 	if errServer != nil && errServer != http.ErrServerClosed {

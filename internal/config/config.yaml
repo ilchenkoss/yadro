@@ -17,3 +17,6 @@ temp:
 httpserver:
   host: "127.0.0.1"
   port: "222"
+  token_max_time: 720 #minutes
+  concurrency_limit: 6
+  rate_limit: 3
