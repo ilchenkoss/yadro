@@ -23,6 +23,5 @@ sec: deps
 	@echo "Running Security Checks"
 	@trivy fs . --scanners vuln
 	@govulncheck ./...
-
 e2e: server
-	@sudo sh ./e2e_test.sh
+	@sudo sh ./internal-api/core/util/scripts/e2e_test.sh

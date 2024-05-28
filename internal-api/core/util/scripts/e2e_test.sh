@@ -4,7 +4,7 @@
 #brew install jq
 
 HOST="localhost"
-PORT="222"
+PORT="22222"
 
 sudo ./xkcd-server &
 
