@@ -1,6 +1,12 @@
 deps:
 	@go get ./...
 
+server: deps
+	@go build -o xkcd-server ./cmd/xkcd-server
+
+web: deps
+	@go build -o web-server ./cmd/web-server
+
 test: deps
 	@echo "Running Tests"
 	@mkdir -p coverage
@@ -17,9 +23,6 @@ sec: deps
 	@echo "Running Security Checks"
 	@trivy fs . --scanners vuln
 	@govulncheck ./...
-
-server: deps
-	@go build -o xkcd-server ./cmd/xkcd-server
 
 e2e: server
 	@sudo sh ./e2e_test.sh

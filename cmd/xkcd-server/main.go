@@ -2,14 +2,14 @@ package main
 
 import (
 	"flag"
-	"myapp/internal/app"
-	"myapp/internal/config"
+	"myapp/internal-api/app"
+	"myapp/internal-api/config"
 	"strings"
 )
 
 func main() {
 
-	configPath := flag.String("c", "./internal/config/config.yaml", "path to cfg *.yaml file")
+	configPath := flag.String("c", "./internal-api/config/config.yaml", "path to cfg *.yaml file")
 	superAdmin := flag.String("sa", "humorist yqS~1v1vKcuMs~", "login password for super admin")
 	flag.Parse()
 

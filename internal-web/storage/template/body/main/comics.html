@@ -1,0 +1,16 @@
+{{define "main"}}
+<div id="comics_container">
+    <p class="foo">Поиск картинок по комиксам</p>
+<form action="?s=" method="get">
+    <input name="s" placeholder="Поиск по комиксам" type="search">
+    <button type="submit">Поиск</button>
+</form>
+    {{if .Pictures}}
+    <p class="foo">: Картинки по вашему запросу: </p>
+    {{end}}
+
+    {{range .Pictures}}
+        <p class="foo">: {{.}}</p>
+    {{end}}
+</div>
+{{end}}
