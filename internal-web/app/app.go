@@ -32,7 +32,7 @@ func Run(cfg *config.Config) {
 	httpServer := httpserver.NewEngine(cfg, router)
 	go func() {
 		//start httpserver
-		slog.Info("Server listening on " + httpServer.Server.Addr)
+		slog.Info("Web server listening on " + httpServer.Server.Addr)
 		httpServerErr := httpServer.Run()
 		if httpServerErr != nil {
 			slog.Error("Error starting httpServer: ", "error", httpServerErr.Error())

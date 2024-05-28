@@ -6,7 +6,7 @@
 HOST="localhost"
 PORT="22222"
 
-sudo ./xkcd-server &
+./xkcd-server &
 
 sleep 5
 
@@ -55,4 +55,4 @@ else
   exit 1
 fi
 
-sudo pkill xkcd-server
+pkill xkcd-server

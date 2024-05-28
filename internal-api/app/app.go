@@ -111,7 +111,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 	httpServer := httpserver.NewEngine(&cfg.HttpServer, router)
 	go func() {
 		//start httpserver
-		slog.Info("Server listening on " + httpServer.Server.Addr)
+		slog.Info("API server listening on " + httpServer.Server.Addr)
 		httpServerErr := httpServer.Run()
 		if httpServerErr != nil {
 			slog.Error("Error starting httpServer: ", "error", httpServerErr.Error())
