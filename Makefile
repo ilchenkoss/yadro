@@ -1,12 +1,11 @@
 deps:
 	@go get ./...
-
 server: deps
 	@go build -o xkcd-server ./cmd/xkcd-server
-
 web: deps
 	@go build -o web-server ./cmd/web-server
-
+servers_start:server web
+	@sh web_and_api_start.sh
 test: deps
 	@echo "Running Tests"
 	@mkdir -p coverage
