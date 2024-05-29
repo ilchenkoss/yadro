@@ -1,93 +1,92 @@
 package handlers
 
 import (
-	"html/template"
+	"myapp/internal-web/core/domain"
 	"net/http"
 )
 
 type FormsHandler struct {
-	StaticFS http.FileSystem
+	StaticFS         http.FileSystem
+	TemplateExecutor TemplateExecutor
 }
 
-func NewFormsHandler() *FormsHandler {
+func NewFormsHandler(te TemplateExecutor) *FormsHandler {
 	return &FormsHandler{
-		StaticFS: http.Dir("./internal-web/storage/static"),
+		StaticFS:         http.Dir("./internal-web/storage/static"),
+		TemplateExecutor: te,
 	}
 }
 
 func (sh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
-	files := []string{
-		"./internal-web/storage/template/index.html",
-		"./internal-web/storage/template/body/body.html",
-		"./internal-web/storage/template/body/main/home.html",
-		"./internal-web/storage/template/body/nav/nav.html",
+
+	var pageData = domain.HomeTemplateData{
+		Logged: false,
+		Login:  "guest",
 	}
 
-	ts, pfErr := template.ParseFiles(files...)
-	if pfErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
+	c, cErr := r.Cookie("access_token")
+	if cErr == nil {
+		cValid := c.Valid()
+		if cValid == nil {
+			pageData.Logged = true
+			//pageData.Login = "Friend"
+		}
 	}
-
-	exErr := ts.Execute(w, nil)
-	if exErr != nil {
+	eErr := sh.TemplateExecutor.Home(&w, pageData)
+	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
 func (sh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 
-	files := []string{
-		"./internal-web/storage/template/index.html",
-		"./internal-web/storage/template/body/body.html",
-		"./internal-web/storage/template/body/main/login.html",
-		"./internal-web/storage/template/body/nav/nav.html",
+	var pageData = domain.LoginTemplateData{
+		Logged: false,
 	}
 
-	ts, pfErr := template.ParseFiles(files...)
-	if pfErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
+	c, cErr := r.Cookie("access_token")
+
+	if cErr == nil {
+		cValid := c.Valid()
+		if cValid == nil {
+			pageData.Logged = true
+		}
 	}
 
-	exErr := ts.Execute(w, nil)
-	if exErr != nil {
+	eErr := sh.TemplateExecutor.Login(&w, pageData)
+	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
 func (sh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 
-	files := []string{
-		"./internal-web/storage/template/index.html",
-		"./internal-web/storage/template/body/body.html",
-		"./internal-web/storage/template/body/main/comics.html",
-		"./internal-web/storage/template/body/nav/nav.html",
+	var pageData = domain.ComicsTemplateData{
+		Logged: false,
 	}
 
-	ts, pfErr := template.ParseFiles(files...)
-	if pfErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
+	c, cErr := r.Cookie("access_token")
+	if cErr == nil {
+		cValid := c.Valid()
+		if cValid == nil {
+			pageData.Logged = true
+		}
 	}
 
 	requestString := r.URL.Query().Get("s")
 	if len(requestString) == 0 {
-		exErr := ts.Execute(w, nil)
-		if exErr != nil {
+		eErr := sh.TemplateExecutor.Comics(&w, pageData)
+		if eErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	type PageData struct {
-		Pictures []string
+	pageData.Pictures = []string{
+		"picture1.jpg",
+		"picture1.jpg",
 	}
 
-	data := PageData{
-		Pictures: []string{
-			"picture1.jpg",
-			"picture1.jpg",
-		},
-	}
-
-	exErr := ts.Execute(w, data)
-	if exErr != nil {
+	eErr := sh.TemplateExecutor.Comics(&w, pageData)
+	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 

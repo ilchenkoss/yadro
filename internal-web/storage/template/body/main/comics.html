@@ -1,16 +1,26 @@
 {{define "main"}}
-<div id="comics_container">
-    <p class="foo">Поиск картинок по комиксам</p>
-<form action="?s=" method="get">
-    <input name="s" placeholder="Поиск по комиксам" type="search">
-    <button type="submit">Поиск</button>
-</form>
-    {{if .Pictures}}
-    <p class="foo">: Картинки по вашему запросу: </p>
-    {{end}}
+    <div id="comics_container">
+    {{if .Logged}}
 
-    {{range .Pictures}}
-        <p class="foo">: {{.}}</p>
+        <p class="foo">Поиск картинок по комиксам</p>
+        <form action="?s=" method="get">
+            <input name="s" placeholder="Поиск по комиксам" type="search">
+            <button type="submit">Поиск</button>
+        </form>
+
+        {{if .Pictures}}
+            <p class="foo">: Картинки по вашему запросу: </p>
+            <div id="pictures_container">
+                {{range .Pictures}}
+                    <img class="comic_picture" src={{.}}>
+                {{end}}
+            </div>
+        {{end}}
+
+    {{else}}
+            <p class="foo">Требуется выполнить вход перед поиском</p>
     {{end}}
-</div>
+    </div>
 {{end}}
+
+

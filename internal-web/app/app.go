@@ -15,9 +15,10 @@ func Run(cfg *config.Config) {
 	//main context for interrupt
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
+	templateExecutor := handlers.NewTemplateExecutor()
 	staticHandler := handlers.NewStaticHandler()
-	formsHandler := handlers.NewFormsHandler()
-	authHandler := handlers.NewAuthHandler(formsHandler)
+	formsHandler := handlers.NewFormsHandler(templateExecutor)
+	authHandler := handlers.NewAuthHandler(cfg.ApiURL, templateExecutor)
 
 	//Init Router
 	routerHandlers := &httpserver.Handlers{
