@@ -72,7 +72,6 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(login, password)
 	var resp LoginResponse
 	uErr := json.Unmarshal(resBody, &resp)
 	if uErr != nil {
@@ -98,5 +97,14 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (ah *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
-	ah.fh.ComicsForm(w, r)
+	cookie := http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	}
+
+	http.SetCookie(w, &cookie)
+	http.Redirect(w, r, "/login", 301)
 }

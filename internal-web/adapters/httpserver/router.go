@@ -18,6 +18,7 @@ func NewRouter(router *Handlers) *http.ServeMux {
 	mux.HandleFunc("GET /static/*", router.StaticHandler.Static)
 
 	mux.HandleFunc("POST /login", router.AuthHandler.Login)
+	mux.HandleFunc("POST /logout", router.AuthHandler.Logout)
 
 	mux.HandleFunc("GET /", router.FormsHandler.HomeForm)
 	mux.HandleFunc("GET /login", router.FormsHandler.LoginForm)
