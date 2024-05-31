@@ -44,7 +44,7 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Password: reqBody.Password,
 	}
 
-	err := uh.svc.Register(&user)
+	_, err := uh.svc.Register(&user)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExist) {
 			http.Error(w, "user already exist", http.StatusBadRequest)
@@ -54,7 +54,11 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode("register user successful")
+	encErr := json.NewEncoder(w).Encode("register user successful")
+	if encErr != nil {
+		//nothing
+		return
+	}
 }
 
 func (uh *UserHandler) ToAdmin(w http.ResponseWriter, r *http.Request) {
@@ -75,15 +79,23 @@ func (uh *UserHandler) ToAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	taErr := uh.svc.ToAdmin(&domain.User{Login: reqBody.Login})
+	_, taErr := uh.svc.ToAdmin(&domain.User{Login: reqBody.Login})
 	if taErr != nil {
 		if errors.Is(taErr, domain.ErrUserNotFound) {
 			http.Error(w, "login not found", http.StatusBadRequest)
+			return
+		}
+		if errors.Is(taErr, domain.ErrUserAlreadyAdmin) {
+			http.Error(w, "user already admin", http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "to admin failed", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode("to admin successful")
+	err := json.NewEncoder(w).Encode("to admin successful")
+	if err != nil {
+		//nothing
+		return
+	}
 }

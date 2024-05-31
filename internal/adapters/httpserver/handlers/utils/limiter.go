@@ -14,7 +14,6 @@ type Limiter struct {
 
 type ConcurrencyLimiter struct {
 	sem chan struct{}
-	wg  sync.WaitGroup
 }
 
 type RateLimiter struct {
@@ -53,13 +52,10 @@ func NewRateLimiter(limit int) *RateLimiter {
 
 func (cl *ConcurrencyLimiter) Add() {
 	cl.sem <- struct{}{}
-	cl.wg.Add(1)
-	return
 }
 
 func (cl *ConcurrencyLimiter) Done() {
 	<-cl.sem
-	cl.wg.Done()
 }
 
 func (rl *RateLimiter) Add(id uint64) error {
@@ -69,7 +65,7 @@ func (rl *RateLimiter) Add(id uint64) error {
 
 	now := time.Now()
 
-	userReq, _ := rl.UserRequests[id]
+	userReq := rl.UserRequests[id]
 	if now.Sub(userReq.LastRequest) >= rl.Interval {
 		rl.UserRequests[id] = UsersRequests{
 			CountRequests: 1,

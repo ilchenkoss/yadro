@@ -17,65 +17,68 @@ func NewUserService(repo port.UserRepository) *UserService {
 	}
 }
 
-func (us *UserService) Register(user *domain.User) error {
+func (us *UserService) Register(user *domain.User) (*domain.User, error) {
 
 	user.Role = domain.Ordinary
 
 	salt, gsErr := util.GenerateSalt(10)
 	if gsErr != nil {
-		return gsErr
+		//domain.ErrLengthMustBePositive
+		return nil, gsErr
 	}
 
 	user.Salt = salt
 
 	hashedPassword, ghpErr := util.HashPassword(user.Password, salt, user.Role)
 	if ghpErr != nil {
-		return ghpErr
+		return nil, ghpErr
 	}
 
 	user.Password = hashedPassword
 
 	cuErr := us.repo.CreateUser(user)
 	if cuErr != nil {
-		return cuErr
+		//domain.ErrUserAlreadyExist
+		return nil, cuErr
 	}
-	return nil
+	return user, nil
 }
 
-func (us *UserService) ToAdmin(user *domain.User) error {
+func (us *UserService) ToAdmin(user *domain.User) (*domain.User, error) {
 
 	user, guErr := us.repo.GetUserByLogin(user.Login)
 	if guErr != nil {
 		// domain.ErrUserNotFound
-		return guErr
+		return nil, guErr
 	}
 	if user.Role == domain.Admin {
-		return errors.New("user role already Admin")
+		return nil, domain.ErrUserAlreadyAdmin
 	}
 	user.Role = domain.Admin
 
 	usErr := us.repo.UpdateUser(user)
 	if usErr != nil {
-		return usErr
+		return nil, usErr
 	}
 
-	return nil
+	return user, nil
 }
 
-func (us *UserService) RegisterSuperAdmin(user *domain.User) error {
+func (us *UserService) RegisterSuperAdmin(user *domain.User) (*domain.User, error) {
 
 	user.Role = domain.SuperAdmin
 
 	salt, gsErr := util.GenerateSalt(10)
 	if gsErr != nil {
-		return gsErr
+		//domain.ErrLengthMustBePositive
+		return nil, gsErr
 	}
 
 	user.Salt = salt
 
 	hashedPassword, ghpErr := util.HashPassword(user.Password, salt, user.Role)
 	if ghpErr != nil {
-		return ghpErr
+		return nil, ghpErr
 	}
 	userPassword := user.Password
 	user.Password = hashedPassword
@@ -86,22 +89,22 @@ func (us *UserService) RegisterSuperAdmin(user *domain.User) error {
 
 			existUser, guErr := us.repo.GetUserByLogin(user.Login)
 			if guErr != nil {
-				return guErr
+				return nil, guErr
 			}
 
 			if existUser.Role != domain.SuperAdmin {
-				return domain.ErrUserNotSuperAdmin
+				return nil, domain.ErrUserNotSuperAdmin
 			}
 
 			cpErr := util.ComparePassword(userPassword, existUser.Salt, existUser.Password)
 			if cpErr != nil {
 				//domain.ErrPasswordIncorrect
-				return cpErr
+				return nil, cpErr
 			}
 
-			return nil
+			return nil, cuErr
 		}
-		return cuErr
+		return nil, cuErr
 	}
-	return nil
+	return user, nil
 }

@@ -53,7 +53,7 @@ func (wr *WeightsRepository) GetWeightsByWords(words map[string]float64) (*[]dom
 			Position: &domain.Positions{},
 		}
 		if scanErr := rows.Scan(&weight.Word.Word, &weight.Comic.ID, &weight.Position.Position, &weight.Weight, &weight.Comic.Picture); scanErr != nil {
-			fmt.Errorf("Error scanning row: %v", scanErr)
+			scanErr = fmt.Errorf("Error scanning row: %v", scanErr)
 			return nil, scanErr
 		}
 		weights = append(weights, weight)

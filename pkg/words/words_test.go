@@ -111,7 +111,7 @@ func TestSifting(t *testing.T) {
 
 	for i := 0; i < tests; i++ {
 
-		generatedWords := generateWords(keyWordsCount, trashWords, 0)
+		generatedWords := generateWords(keyWordsCount, trashWords)
 		resultSlice := append([]string(nil), generatedWords...)
 
 		trashWordsCount := (keyWordsCount * trashWordsChance) / 100
@@ -136,80 +136,9 @@ func TestSifting(t *testing.T) {
 	}
 }
 
-// func TestSynth(t *testing.T) {
-//
-//		var tests = 10
-//		uniqueWords := 15
-//		duplicates := 3
-//
-//		punctuationChance := 40
-//		punctuation := []string{
-//			".",
-//			",",
-//			" -",
-//			"?",
-//			"!",
-//		}
-//
-//		trashWordsChance := 20
-//		trashWords := loadStopWords()
-//
-//		//create slice with keys
-//		trashWordKeys := make([]string, 0, len(trashWords))
-//		for key := range trashWords {
-//			trashWordKeys = append(trashWordKeys, key)
-//		}
-//
-//		for i := 0; i < tests; i++ {
-//
-//			//buffer for synth string
-//			var synthStringBuffer bytes.Buffer
-//
-//			generatedWords := generateWords(uniqueWords, trashWords, duplicates)
-//
-//			for index, word := range generatedWords {
-//
-//				synthStringBuffer.WriteString(strings.ToLower(word))
-//
-//				//add punctuation
-//				if rand.Intn(100) < punctuationChance {
-//
-//					//pick random punctuation
-//					randomIndex := rand.Intn(len(punctuation))
-//					pick := punctuation[randomIndex]
-//
-//					synthStringBuffer.WriteString(pick)
-//				}
-//
-//				//add trashWord
-//
-//				if rand.Intn(100) < trashWordsChance {
-//					//pick random trashWord
-//					randomIndex := rand.Intn(len(trashWordKeys))
-//					pick := trashWordKeys[randomIndex]
-//
-//					synthStringBuffer.WriteString(" " + pick)
-//				}
-//
-//				if index != len(generatedWords)-1 {
-//					synthStringBuffer.WriteString(" ")
-//				}
-//			}
-//
-//			finalString := synthStringBuffer.String()
-//			actual := StringNormalization(finalString)
-//
-//			if uniqueWords != len(actual) {
-//
-//				_, errDetails := comparisonSlices(actual, generatedWords)
-//
-//				t.Errorf("\nResult was incorrect. \n got: %s, \n want: %s.", errDetails["actual"], errDetails["expected"])
-//			}
-//		}
-//	}
-func generateWords(uniqueWords int, trashWords map[string]bool, duplicates int) []string {
+func generateWords(uniqueWords int, trashWords map[string]bool) []string {
 
-	wordsCount := uniqueWords + duplicates
+	wordsCount := uniqueWords
 
 	//duplicate stemmed words
 	duplicateContainer := make(map[string]bool)
@@ -234,20 +163,6 @@ func generateWords(uniqueWords int, trashWords map[string]bool, duplicates int) 
 		duplicateContainer[stemmedWord] = true
 	}
 
-	//add duplicates
-	if duplicates > 0 {
-
-		var duplicateKeys []string
-
-		for key := range duplicateContainer {
-			duplicateKeys = append(duplicateKeys, key)
-		}
-
-		for i := uniqueWords; i < wordsCount; i++ {
-			word := generatedWords[rand.Intn(uniqueWords-1)]
-			generatedWords[i] = word
-		}
-	}
 	return generatedWords
 }
 

@@ -28,14 +28,14 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	weights, getWeightsByWordsErr := s.wr.GetWeightsByWords(requestWeights)
 	if getWeightsByWordsErr != nil {
-		slog.Error("Error find relevant pictures :", getWeightsByWordsErr)
+		slog.Error("Error find relevant pictures :", "error", getWeightsByWordsErr.Error())
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
 	pictures, findRelevantComicsErr := s.ws.FindRelevantPictures(requestWeights, weights)
 	if findRelevantComicsErr != nil {
-		slog.Error("Error find relevant pictures :", findRelevantComicsErr)
+		slog.Error("Error find relevant pictures :", "error", findRelevantComicsErr.Error())
 		http.Error(w, "Find pictures error", http.StatusInternalServerError)
 		return
 	}
@@ -45,5 +45,9 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(utils.NewSearchResponse(true, "Success", pictures))
+	err := json.NewEncoder(w).Encode(utils.NewSearchResponse(true, "Success", pictures))
+	if err != nil {
+		//nothing
+		return
+	}
 }

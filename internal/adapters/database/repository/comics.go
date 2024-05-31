@@ -59,7 +59,7 @@ func (cr *ComicsRepository) GetMissedIDs() (map[int]bool, error) {
 	var missedID int
 	for query.Next() {
 		if scanErr := query.Scan(&missedID); scanErr != nil {
-			fmt.Errorf("Error scanning row: %v", scanErr)
+			scanErr = fmt.Errorf("Error scanning row: %v", scanErr)
 			return missedIDs, scanErr
 		}
 		missedIDs[missedID] = true

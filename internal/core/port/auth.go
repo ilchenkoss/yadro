@@ -1,14 +1,12 @@
 package port
 
 import (
-	"github.com/golang-jwt/jwt/v5"
 	"myapp/internal/core/domain"
 )
 
 type TokenService interface {
 	CreateToken(user *domain.User) (string, error)
-	GetUserByToken(token *jwt.Token) (string, error)
-	GetTokenByString(tokenString string) (*jwt.Token, error)
+	GetUserByTokenString(tokenString string) (string, error)
 }
 
 type AuthService interface {

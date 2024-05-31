@@ -51,29 +51,26 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ts port.TokenService
 		}
 
 		accessToken := fields[1]
-		token, tErr := ts.GetTokenByString(accessToken)
+		userLogin, tErr := ts.GetUserByTokenString(accessToken)
 		if tErr != nil {
 			switch {
 			case errors.Is(tErr, domain.ErrTokenExpired):
 				http.Error(w, "token expired", http.StatusUnauthorized)
 				return
-			default:
+			case errors.Is(tErr, domain.ErrTokenNotValid):
 				http.Error(w, "invalid token", http.StatusUnauthorized)
 				return
+			default:
+				http.Error(w, "auth failed", http.StatusInternalServerError)
+				return
 			}
-		}
-
-		userLogin, lErr := ts.GetUserByToken(token)
-		if lErr != nil {
-			http.Error(w, "auth failed", http.StatusInternalServerError)
-			return
 		}
 
 		user, rguErr := ur.GetUserByLogin(userLogin)
 		if rguErr != nil {
 			switch {
 			case errors.Is(rguErr, domain.ErrUserNotFound):
-				slog.Error("Error attempt to log in using a non-existent login. Token: ", fields[1])
+				slog.Error("Error attempt to log in using a non-existent login", slog.String("token", accessToken))
 				http.Error(w, "invalid token", http.StatusUnauthorized)
 				return
 			default:

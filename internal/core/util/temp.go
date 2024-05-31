@@ -14,20 +14,21 @@ type Temper struct {
 	TempedIDs   map[int]bool
 	MaxTempedID int
 	Config      *config.TempConfig
+	Fs          FileSystem
 }
 
-func NewTemper(cfg *config.TempConfig) (*Temper, error) {
+func NewTemper(cfg *config.TempConfig, fs FileSystem) (*Temper, error) {
 
 	// Check directory exists
-	_, statErr := os.Stat(cfg.TempDir)
-	if os.IsNotExist(statErr) {
+	_, statErr := fs.Stat(cfg.TempDir)
+	if fs.IsNotExist(statErr) {
 		// Directory not exist
-		mkDirErr := os.Mkdir(cfg.TempDir, 0777)
+		mkDirErr := fs.Mkdir(cfg.TempDir, 0777)
 		if mkDirErr != nil {
 			return nil, mkDirErr
 		}
 	}
-	if statErr != nil && !os.IsNotExist(statErr) {
+	if statErr != nil && !fs.IsNotExist(statErr) {
 		return nil, statErr
 	}
 
@@ -35,14 +36,16 @@ func NewTemper(cfg *config.TempConfig) (*Temper, error) {
 	tempedIDs := make(map[int]bool)
 	maxTempedID := 0
 
-	existFiles, err := os.ReadDir(cfg.TempDir)
+	existFiles, err := fs.ReadDir(cfg.TempDir)
 	if err != nil {
 		return nil, err
 	}
 	for _, file := range existFiles {
+		if file.IsDir() {
+			continue
+		}
 		fileName := file.Name()
 		tempFiles[fileName] = true
-
 		fileNameWithoutPattern := strings.Split(fileName, cfg.TempFilePattern)[1]
 		fileIDString := strings.Split(fileNameWithoutPattern, "-")[0]
 		fileID, strToIntErr := strconv.Atoi(fileIDString)
@@ -63,24 +66,29 @@ func NewTemper(cfg *config.TempConfig) (*Temper, error) {
 		TempFiles:   tempFiles,
 		TempedIDs:   tempedIDs,
 		MaxTempedID: maxTempedID,
-		Config:      cfg}, nil
+		Config:      cfg,
+		Fs:          fs}, nil
 }
 
 func (t *Temper) ReadTempFile(filePath string) []byte {
-	fileData, err := os.ReadFile(filePath)
+	fileData, err := t.Fs.ReadFile(filePath)
 	if err != nil {
 		return nil
 	}
 	return fileData
 }
-
 func (t *Temper) SaveTempDataByID(data []byte, ID int) error {
-
-	tempFile, createTempErr := os.CreateTemp(t.TempDir, fmt.Sprintf("%s%d-", t.Config.TempFilePattern, ID))
+	tempFile, createTempErr := t.Fs.CreateTemp(t.TempDir, fmt.Sprintf("%s%d-", t.Config.TempFilePattern, ID))
 	if createTempErr != nil {
 		return fmt.Errorf("error creating temporary file: %v", createTempErr)
 	}
-	defer tempFile.Close()
+	defer func(tempFile *os.File) {
+		err := tempFile.Close()
+		if err != nil {
+			//nothing
+			return
+		}
+	}(tempFile)
 
 	if _, writeErr := tempFile.Write(data); writeErr != nil {
 		return fmt.Errorf("error writing data to temporary file: %v", writeErr)
@@ -90,9 +98,45 @@ func (t *Temper) SaveTempDataByID(data []byte, ID int) error {
 }
 
 func (t *Temper) RemoveTemp() error {
-	err := os.RemoveAll(t.TempDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	return t.Fs.RemoveAll(t.TempDir)
+}
+
+type FileSystem interface {
+	Stat(name string) (os.FileInfo, error)
+	Mkdir(name string, perm os.FileMode) error
+	ReadDir(name string) ([]os.DirEntry, error)
+	ReadFile(name string) ([]byte, error)
+	CreateTemp(dir, pattern string) (*os.File, error)
+	RemoveAll(path string) error
+	IsNotExist(err error) bool
+}
+
+type OSFileSystem struct{}
+
+func (OSFileSystem) IsNotExist(err error) bool {
+	return os.IsNotExist(err)
+}
+
+func (OSFileSystem) Stat(name string) (os.FileInfo, error) {
+	return os.Stat(name)
+}
+
+func (OSFileSystem) Mkdir(name string, perm os.FileMode) error {
+	return os.Mkdir(name, perm)
+}
+
+func (OSFileSystem) ReadDir(name string) ([]os.DirEntry, error) {
+	return os.ReadDir(name)
+}
+
+func (OSFileSystem) ReadFile(name string) ([]byte, error) {
+	return os.ReadFile(name)
+}
+
+func (OSFileSystem) CreateTemp(dir, pattern string) (*os.File, error) {
+	return os.CreateTemp(dir, pattern)
+}
+
+func (OSFileSystem) RemoveAll(path string) error {
+	return os.RemoveAll(path)
 }
