@@ -33,6 +33,7 @@ type TempConfig struct {
 }
 
 type HttpServerConfig struct {
+	EnvPath          string `yaml:"env_path"`
 	Host             string `yaml:"host"`
 	Port             string `yaml:"port"`
 	TokenMaxTime     int    `yaml:"token_max_time"`
@@ -67,6 +68,11 @@ func GetConfig(configPath string) (*Config, error) {
 	if decodeErr := yaml.NewDecoder(file).Decode(&config); decodeErr != nil {
 		slog.Error("Error decode config file: ", "error", decodeErr.Error())
 		return nil, decodeErr
+	}
+
+	envLoadErr := godotenv.Load(config.HttpServer.EnvPath)
+	if envLoadErr != nil {
+		slog.Error("Error loading .env file: %v", "error", err.Error())
 	}
 
 	return &config, nil

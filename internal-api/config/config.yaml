@@ -19,3 +19,4 @@ httpserver:
   token_max_time: 720 #minutes
   concurrency_limit: 6
   rate_limit: 3
+  env_path: "./internal-api/config/.env.test"

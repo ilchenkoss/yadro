@@ -23,4 +23,4 @@ sec: deps
 	@trivy fs . --scanners vuln
 	@govulncheck ./...
 e2e: server
-	@sudo sh ./internal-api/core/util/scripts/e2e_test.sh
+	@sh ./internal-api/core/util/scripts/e2e_test.sh
