@@ -1,4 +1,24 @@
 .comic_picture {
-    height: 100px;
-    width: 100px;
+    width: 500px;
+}
+
+
+.quote {
+    padding-left: 50px;
+    border-left: 4px solid #e2e2e2;
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+.quote p {
+    font-style: normal;
+    font-weight: normal;
+    font-size: 22px;
+    line-height: 28px;
+    color: #333333;
+}
+.quote cite {
+    font-style: italic;
+    font-weight: normal;
+    font-size: 22px;
+    line-height: 28px;
+    color: #aaaaaa;
 }

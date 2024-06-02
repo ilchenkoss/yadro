@@ -16,7 +16,7 @@
             <button class="form_auth_button" type="submit" name="form_auth_submit">Войти</button>
             <br>
             {{if .LoginErr}}
-            <p>Error: <font size="6" color="#fa8e47" face="serif">{{.LoginErr}}</font></p>
+            <p class="error">Error: {{.LoginErr}}</p>
             {{end}}
         </form>
     {{end}}
