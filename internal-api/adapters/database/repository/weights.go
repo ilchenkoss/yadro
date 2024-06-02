@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"fmt"
 	"myapp/internal-api/adapters/database"
 	"myapp/internal-api/core/domain"
@@ -31,7 +32,7 @@ func (wr *WeightsRepository) GetWeightsByWords(words map[string]float64) (*[]dom
 	placeholders = placeholders[:len(placeholders)-1]
 
 	query := fmt.Sprintf(`
-		SELECT wd.word, w.comic_id,p.position, w.weight, c.picture
+		SELECT wd.word, w.comic_id,p.position, w.weight, c.picture, c.description
 		FROM weights w
 		JOIN positions p ON w.position_id = p.id
 		JOIN words wd ON w.word_id = wd.id
@@ -52,9 +53,13 @@ func (wr *WeightsRepository) GetWeightsByWords(words map[string]float64) (*[]dom
 			Comic:    &domain.Comics{},
 			Position: &domain.Positions{},
 		}
-		if scanErr := rows.Scan(&weight.Word.Word, &weight.Comic.ID, &weight.Position.Position, &weight.Weight, &weight.Comic.Picture); scanErr != nil {
+		var description sql.NullString
+		if scanErr := rows.Scan(&weight.Word.Word, &weight.Comic.ID, &weight.Position.Position, &weight.Weight, &weight.Comic.Picture, &description); scanErr != nil {
 			scanErr = fmt.Errorf("Error scanning row: %v", scanErr)
 			return nil, scanErr
+		}
+		if description.Valid {
+			weight.Comic.Description = description.String
 		}
 		weights = append(weights, weight)
 	}

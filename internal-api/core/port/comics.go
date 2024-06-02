@@ -5,6 +5,7 @@ import (
 )
 
 type ComicsRepository interface {
+	UpdateComicsDescriptionByID(ID string, description string) error
 	GetComicsByID(ID int) (*domain.Comics, error)
 	GetMissedIDs() (map[int]bool, error)
 	GetMaxID() (int, error)

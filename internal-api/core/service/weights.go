@@ -83,14 +83,16 @@ func (w *WeightService) WeightComics(comics []domain.Comics) *[]domain.Weights {
 	return &weights
 }
 
-func (w *WeightService) FindRelevantPictures(requestWeights map[string]float64, weights *[]domain.Weights) ([]string, error) {
+func (w *WeightService) FindRelevantPictures(requestWeights map[string]float64, weights *[]domain.Weights) ([]domain.Comics, error) {
 
 	type WeightsInfo struct {
-		Alt        []string
-		Title      []string
-		Transcript []string
-		Picture    string
-		Weight     float64
+		ID          int
+		Alt         []string
+		Title       []string
+		Transcript  []string
+		Picture     string
+		Weight      float64
+		Description string
 	}
 
 	weightsByID := make(map[int]WeightsInfo)
@@ -108,7 +110,9 @@ func (w *WeightService) FindRelevantPictures(requestWeights map[string]float64, 
 			weightsInfo.Transcript = append(weightsInfo.Transcript, weight.Word.Word)
 		}
 
+		weightsInfo.ID = weight.Comic.ID
 		weightsInfo.Picture = weight.Comic.Picture
+		weightsInfo.Description = weight.Comic.Description
 		weightsInfo.Weight += weight.Weight
 		weightsByID[weight.Comic.ID] = weightsInfo
 	}
@@ -136,11 +140,12 @@ func (w *WeightService) FindRelevantPictures(requestWeights map[string]float64, 
 		return sliceWeights[i].Weight >= sliceWeights[j].Weight
 	})
 
-	result := make([]string, 0, len(sliceWeights))
+	result := make([]domain.Comics, 0, len(sliceWeights))
 
 	//append result slice
 	for _, value := range sliceWeights {
-		result = append(result, value.Picture)
+		picture := domain.Comics{Picture: value.Picture, ID: value.ID, Description: value.Description}
+		result = append(result, picture)
 	}
 
 	return result, nil

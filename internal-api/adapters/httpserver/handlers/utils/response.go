@@ -1,5 +1,7 @@
 package utils
 
+import "myapp/internal-api/core/domain"
+
 type UpdateResponse struct {
 	Success     bool   `json:"success" example:"true"`
 	Message     string `json:"message" example:"Success"`
@@ -17,12 +19,12 @@ func NewUpdateResponse(success bool, message string, newComics int, totalComics 
 }
 
 type SearchResponse struct {
-	Success       bool     `json:"success" example:"true"`
-	Message       string   `json:"message" example:"Success"`
-	FoundPictures []string `json:"found_pictures"`
+	Success       bool            `json:"success" example:"true"`
+	Message       string          `json:"message" example:"Success"`
+	FoundPictures []domain.Comics `json:"found_pictures"`
 }
 
-func NewSearchResponse(success bool, message string, fundPictures []string) SearchResponse {
+func NewSearchResponse(success bool, message string, fundPictures []domain.Comics) SearchResponse {
 	return SearchResponse{
 		Success:       success,
 		Message:       message,
@@ -41,5 +43,17 @@ func NewLoginResponse(success bool, message string, token string) LoginResponse 
 		Success: success,
 		Message: message,
 		Token:   token,
+	}
+}
+
+type DescriptionResponse struct {
+	Success bool   `json:"success" example:"true"`
+	Message string `json:"message" example:"Success"`
+}
+
+func NewDescriptionResponse(success bool, message string) LoginResponse {
+	return LoginResponse{
+		Success: success,
+		Message: message,
 	}
 }

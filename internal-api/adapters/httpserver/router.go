@@ -25,6 +25,7 @@ func NewRouter(router *Handlers) *http.ServeMux {
 
 	mux.HandleFunc("POST /update", utils.AdminMiddleware(router.ScrapeHandler.Update, router.TokenService, router.UserRepo, router.Limiter))
 	mux.HandleFunc("GET /pics", utils.OrdinaryMiddleware(router.SearchHandler.Search, router.TokenService, router.UserRepo, router.Limiter))
+	mux.HandleFunc("GET /desc", utils.OrdinaryMiddleware(router.SearchHandler.Description, router.TokenService, router.UserRepo, router.Limiter))
 
 	mux.HandleFunc("POST /login", utils.GuestMiddleware(router.AuthHandler.Login, router.Limiter))
 

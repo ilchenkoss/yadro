@@ -16,15 +16,25 @@ func NewComicsRepository(db *database.DB) *ComicsRepository {
 	}
 }
 
+func (cr *ComicsRepository) UpdateComicsDescriptionByID(ID string, description string) error {
+
+	updateQuery := "UPDATE comics SET description = ? WHERE id = ?"
+	_, err := cr.db.Exec(updateQuery, description, ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (cr *ComicsRepository) GetComicsByID(ID int) (*domain.Comics, error) {
 
-	query := "SELECT c.id, c.picture, c.title, c.alt, c.transcript FROM comics c WHERE id = ?"
+	query := "SELECT c.id, c.picture, c.title, c.alt, c.transcript, c.description FROM comics c WHERE id = ?"
 
 	row := cr.db.QueryRow(query, ID)
 
 	var comics domain.Comics
 
-	err := row.Scan(&comics.ID, &comics.Picture, &comics.Title, &comics.Alt, &comics.Transcript)
+	err := row.Scan(&comics.ID, &comics.Picture, &comics.Title, &comics.Alt, &comics.Transcript, &comics.Description)
 	if err != nil {
 		return &comics, err
 	}
@@ -93,7 +103,7 @@ func (cr *ComicsRepository) InsertComics(comics *[]domain.Comics) (int, error) {
 	}
 
 	//prepare sql query
-	stmt, stmtError := tx.Prepare("INSERT OR REPLACE INTO comics(id, picture, title, alt, transcript) VALUES(?, ?, ?, ?, ?)")
+	stmt, stmtError := tx.Prepare("INSERT OR REPLACE INTO comics(id, picture, title, alt, transcript, description) VALUES(?, ?, ?, ?, ?, ?)")
 	if stmtError != nil {
 		rollBackErr := tx.Rollback()
 		if rollBackErr != nil {
@@ -106,7 +116,7 @@ func (cr *ComicsRepository) InsertComics(comics *[]domain.Comics) (int, error) {
 	//insert comics
 	insertScore := 0
 	for _, comic := range *comics {
-		_, execErr := stmt.Exec(comic.ID, comic.Picture, comic.Title, comic.Alt, comic.Transcript) // _ -> result affected and last inserted ID
+		_, execErr := stmt.Exec(comic.ID, comic.Picture, comic.Title, comic.Alt, comic.Transcript, comic.Description) // _ -> result affected and last inserted ID
 		if execErr != nil {
 			rollBackErr := tx.Rollback()
 			if rollBackErr != nil {

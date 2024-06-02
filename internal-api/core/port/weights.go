@@ -9,7 +9,7 @@ type WeightRepository interface {
 }
 
 type WeightService interface {
-	FindRelevantPictures(requestWeights map[string]float64, weights *[]domain.Weights) ([]string, error)
+	FindRelevantPictures(requestWeights map[string]float64, weights *[]domain.Weights) ([]domain.Comics, error)
 	WeightComics(comics []domain.Comics) *[]domain.Weights
 	WeightRequest(request string) map[string]float64
 }

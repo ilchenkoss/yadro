@@ -81,7 +81,7 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 	limiter := utils.NewLimiter(&cfg.HttpServer)
 	fs := util.OSFileSystem{}
 	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg, fs)
-	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, *limiter)
+	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, comicsRepo, *limiter)
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService, userRepo)
 
