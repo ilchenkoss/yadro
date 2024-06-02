@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log/slog"
+	"myapp/internal-web/adapters"
 	"myapp/internal-web/adapters/httpserver"
 	"myapp/internal-web/adapters/httpserver/handlers"
 	"myapp/internal-web/config"
@@ -15,10 +16,18 @@ func Run(cfg *config.Config) {
 	//main context for interrupt
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
-	templateExecutor := handlers.NewTemplateExecutor()
-	staticHandler := handlers.NewStaticHandler()
-	formsHandler := handlers.NewFormsHandler(templateExecutor)
-	authHandler := handlers.NewAuthHandler(cfg.ApiURL, templateExecutor)
+	//gptAdapter := adapters2.NewGptAPI()
+	//gptAdapter.Test()
+	//err := gptAdapter.Ping()
+	//fmt.Println(err)
+	//err2 := gptAdapter.Test()
+	//fmt.Println(err2)
+
+	xkcdApi := adapters.NewXkcdAPI(cfg.XkcdApiURL)
+	templateExecutor := handlers.NewTemplateExecutor(cfg.TemplatePath)
+	staticHandler := handlers.NewStaticHandler(cfg.StaticPath)
+	authHandler := handlers.NewAuthHandler(xkcdApi, templateExecutor)
+	formsHandler := handlers.NewFormsHandler(templateExecutor, xkcdApi, *authHandler, cfg.StaticPath)
 
 	//Init Router
 	routerHandlers := &httpserver.Handlers{

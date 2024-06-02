@@ -7,9 +7,11 @@ import (
 )
 
 type Config struct {
-	Host   string `yaml:"host"`
-	Port   string `yaml:"port"`
-	ApiURL string `yaml:"api_url"`
+	Host         string `yaml:"host"`
+	Port         string `yaml:"port"`
+	XkcdApiURL   string `yaml:"xkcd_api_url"`
+	StaticPath   string `yaml:"static_path"`
+	TemplatePath string `yaml:"template_path"`
 }
 
 func GetConfig(configPath string) (*Config, error) {

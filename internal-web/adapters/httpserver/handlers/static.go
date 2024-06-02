@@ -8,9 +8,9 @@ type StaticHandler struct {
 	fs http.FileSystem
 }
 
-func NewStaticHandler() *StaticHandler {
+func NewStaticHandler(staticDir string) *StaticHandler {
 	return &StaticHandler{
-		fs: http.Dir("./internal-web/storage/static")}
+		fs: http.Dir(staticDir)}
 }
 
 func (sh *StaticHandler) Static(w http.ResponseWriter, r *http.Request) {

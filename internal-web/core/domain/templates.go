@@ -11,6 +11,7 @@ type LoginTemplateData struct {
 }
 
 type ComicsTemplateData struct {
-	Logged   bool
-	Pictures []string
+	Logged    bool
+	Comics    []Comics
+	SearchErr string
 }

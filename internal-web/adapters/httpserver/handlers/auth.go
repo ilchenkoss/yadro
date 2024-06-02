@@ -1,23 +1,21 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
+	"errors"
 	"myapp/internal-web/core/domain"
+	"myapp/internal-web/core/port"
 	"net/http"
 )
 
 type AuthHandler struct {
-	ApiURL           string
-	TemplateExecutor TemplateExecutor
+	xAPI      port.XkcdAPI
+	tExecutor TemplateExecutor
 }
 
-func NewAuthHandler(apiURL string, te TemplateExecutor) *AuthHandler {
+func NewAuthHandler(xkcdAPI port.XkcdAPI, tExecutor TemplateExecutor) *AuthHandler {
 	return &AuthHandler{
-		ApiURL:           apiURL,
-		TemplateExecutor: te,
+		xAPI:      xkcdAPI,
+		tExecutor: tExecutor,
 	}
 }
 
@@ -26,60 +24,26 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	pfErr := r.ParseForm()
 	if pfErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
-	}
-
-	type requestLogin struct {
-		Login    string
-		Password string
-	}
-	rl := requestLogin{
-		Login:    r.Form.Get("auth_login"),
-		Password: r.Form.Get("auth_pass"),
-	}
-	rlJson, jErr := json.Marshal(rl)
-	if jErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	rlReader := bytes.NewReader(rlJson)
 
-	type LoginResponse struct {
-		Success bool
-		Message string
-		Token   string
-	}
-
-	res, rErr := http.Post(fmt.Sprintf("%s/login", ah.ApiURL), "application/json", rlReader)
-	if rErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-	if res.StatusCode != http.StatusOK {
-		data := domain.LoginTemplateData{
-			Logged:   false,
-			LoginErr: res.Status,
-		}
-		teErr := ah.TemplateExecutor.Login(&w, data)
-		if teErr != nil {
+	token, lErr := ah.xAPI.Login(r.Form.Get("auth_login"), r.Form.Get("auth_pass"))
+	if lErr != nil {
+		switch {
+		case errors.Is(lErr, domain.ErrUnauthorized):
+			data := domain.LoginTemplateData{
+				Logged:   false,
+				LoginErr: "login or password incorrect",
+			}
+			teErr := ah.tExecutor.Login(&w, data)
+			if teErr != nil {
+				http.Error(w, "", http.StatusInternalServerError)
+			}
+		default:
 			http.Error(w, "", http.StatusInternalServerError)
 		}
 		return
 	}
-
-	resBody, rErr := io.ReadAll(res.Body)
-	if rErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	var resp LoginResponse
-	uErr := json.Unmarshal(resBody, &resp)
-	if uErr != nil {
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	token := resp.Token
 
 	cookie := http.Cookie{
 		Name:     "access_token",

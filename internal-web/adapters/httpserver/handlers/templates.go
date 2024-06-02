@@ -8,18 +8,21 @@ import (
 )
 
 type TemplateExecutor struct {
+	templateDir string
 }
 
-func NewTemplateExecutor() TemplateExecutor {
-	return TemplateExecutor{}
+func NewTemplateExecutor(td string) TemplateExecutor {
+	return TemplateExecutor{
+		templateDir: td,
+	}
 }
 
 func (te *TemplateExecutor) Home(w *http.ResponseWriter, data domain.HomeTemplateData) error {
 	files := []string{
-		"./internal-web/storage/template/index.html",
-		"./internal-web/storage/template/body/body.html",
-		"./internal-web/storage/template/body/main/home.html",
-		"./internal-web/storage/template/body/nav/nav.html",
+		fmt.Sprintf("%s/index.html", te.templateDir),
+		fmt.Sprintf("%s/body/body.html", te.templateDir),
+		fmt.Sprintf("%s/body/main/home.html", te.templateDir),
+		fmt.Sprintf("%s/body/nav/nav.html", te.templateDir),
 	}
 
 	ts, pfErr := template.ParseFiles(files...)
@@ -37,10 +40,10 @@ func (te *TemplateExecutor) Home(w *http.ResponseWriter, data domain.HomeTemplat
 func (te *TemplateExecutor) Login(w *http.ResponseWriter, data domain.LoginTemplateData) error {
 
 	files := []string{
-		"./internal-web/storage/template/index.html",
-		"./internal-web/storage/template/body/body.html",
-		"./internal-web/storage/template/body/main/login.html",
-		"./internal-web/storage/template/body/nav/nav.html",
+		fmt.Sprintf("%s/index.html", te.templateDir),
+		fmt.Sprintf("%s/body/body.html", te.templateDir),
+		fmt.Sprintf("%s/body/main/login.html", te.templateDir),
+		fmt.Sprintf("%s/body/nav/nav.html", te.templateDir),
 	}
 
 	ts, pfErr := template.ParseFiles(files...)
@@ -58,10 +61,10 @@ func (te *TemplateExecutor) Login(w *http.ResponseWriter, data domain.LoginTempl
 func (te *TemplateExecutor) Comics(w *http.ResponseWriter, data domain.ComicsTemplateData) error {
 
 	files := []string{
-		"./internal-web/storage/template/index.html",
-		"./internal-web/storage/template/body/body.html",
-		"./internal-web/storage/template/body/main/comics.html",
-		"./internal-web/storage/template/body/nav/nav.html",
+		fmt.Sprintf("%s/index.html", te.templateDir),
+		fmt.Sprintf("%s/body/body.html", te.templateDir),
+		fmt.Sprintf("%s/body/main/comics.html", te.templateDir),
+		fmt.Sprintf("%s/body/nav/nav.html", te.templateDir),
 	}
 
 	ts, pfErr := template.ParseFiles(files...)

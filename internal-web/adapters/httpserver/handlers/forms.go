@@ -1,19 +1,26 @@
 package handlers
 
 import (
+	"errors"
+	"fmt"
 	"myapp/internal-web/core/domain"
+	"myapp/internal-web/core/port"
 	"net/http"
 )
 
 type FormsHandler struct {
 	StaticFS         http.FileSystem
 	TemplateExecutor TemplateExecutor
+	XkcdAPI          port.XkcdAPI
+	AuthHandler      AuthHandler
 }
 
-func NewFormsHandler(te TemplateExecutor) *FormsHandler {
+func NewFormsHandler(te TemplateExecutor, xkcdAPI port.XkcdAPI, ah AuthHandler, staticPath string) *FormsHandler {
 	return &FormsHandler{
-		StaticFS:         http.Dir("./internal-web/storage/static"),
+		StaticFS:         http.Dir(staticPath),
 		TemplateExecutor: te,
+		XkcdAPI:          xkcdAPI,
+		AuthHandler:      ah,
 	}
 }
 
@@ -21,7 +28,6 @@ func (sh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
 
 	var pageData = domain.HomeTemplateData{
 		Logged: false,
-		Login:  "guest",
 	}
 
 	c, cErr := r.Cookie("access_token")
@@ -29,7 +35,6 @@ func (sh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
 		cValid := c.Valid()
 		if cValid == nil {
 			pageData.Logged = true
-			//pageData.Login = "Friend"
 		}
 	}
 	eErr := sh.TemplateExecutor.Home(&w, pageData)
@@ -37,7 +42,7 @@ func (sh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
-func (sh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
+func (fh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 
 	var pageData = domain.LoginTemplateData{
 		Logged: false,
@@ -46,46 +51,75 @@ func (sh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 	c, cErr := r.Cookie("access_token")
 
 	if cErr == nil {
-		cValid := c.Valid()
-		if cValid == nil {
+		cValidErr := c.Valid()
+		if cValidErr == nil {
 			pageData.Logged = true
 		}
 	}
 
-	eErr := sh.TemplateExecutor.Login(&w, pageData)
+	eErr := fh.TemplateExecutor.Login(&w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
-func (sh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
+
+func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 
 	var pageData = domain.ComicsTemplateData{
 		Logged: false,
 	}
 
 	c, cErr := r.Cookie("access_token")
-	if cErr == nil {
-		cValid := c.Valid()
-		if cValid == nil {
-			pageData.Logged = true
+	cValidErr := c.Valid()
+
+	if cErr != nil && cValidErr != nil {
+		eErr := fh.TemplateExecutor.Comics(&w, pageData)
+		if eErr != nil {
+			http.Error(w, "", http.StatusInternalServerError)
 		}
+		return
 	}
+	pageData.Logged = true
 
 	requestString := r.URL.Query().Get("s")
 	if len(requestString) == 0 {
-		eErr := sh.TemplateExecutor.Comics(&w, pageData)
+		eErr := fh.TemplateExecutor.Comics(&w, pageData)
 		if eErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	pageData.Pictures = []string{
-		"picture1.jpg",
-		"picture1.jpg",
+	descriptionID := r.URL.Query().Get("d")
+
+	if len(descriptionID) != 0 {
+		ucErr := fh.XkcdAPI.UpdateDescription(descriptionID, c.Value)
+		fmt.Println(ucErr)
+		comicIndex := r.URL.Query().Get("ci")
+		http.Redirect(w, r, fmt.Sprintf("/comics?s=%s&ci=%s", requestString, comicIndex), 301)
+		return
 	}
 
-	eErr := sh.TemplateExecutor.Comics(&w, pageData)
+	comics, xErr := fh.XkcdAPI.GetComics(requestString, c.Value)
+
+	if xErr != nil {
+		switch {
+		case errors.Is(xErr, domain.ErrUnauthorized):
+			fh.AuthHandler.Logout(w, r)
+			return
+		case errors.Is(xErr, domain.ErrAuthFailed):
+			fh.AuthHandler.Logout(w, r)
+			return
+		case errors.Is(xErr, domain.ErrToManyRequests):
+			pageData.SearchErr = "Превышено количество запросов"
+		default:
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	pageData.Comics = comics
+	eErr := fh.TemplateExecutor.Comics(&w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
