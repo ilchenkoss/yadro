@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
@@ -55,6 +56,12 @@ func GetConfig(configPath string) (*Config, error) {
 	if err != nil {
 		slog.Error("Error read config file: ", "error", err.Error())
 		return nil, err
+	}
+
+	//envLoadErr := godotenv.Load("./internal-api/config/.env")
+	envLoadErr := godotenv.Load("./internal-api/config/.env.test")
+	if envLoadErr != nil {
+		slog.Error("Error loading .env file: %v", err)
 	}
 
 	if decodeErr := yaml.NewDecoder(file).Decode(&config); decodeErr != nil {

@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-func Run(cfg *config.Config, superAdminLoginPassword []string) {
+func Run(cfg *config.Config) {
 
 	//main context for interrupt
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -62,8 +62,8 @@ func Run(cfg *config.Config, superAdminLoginPassword []string) {
 	//init superAdmin
 	superAdmin := domain.User{
 		Role:     domain.SuperAdmin,
-		Login:    superAdminLoginPassword[0],
-		Password: superAdminLoginPassword[1],
+		Login:    os.Getenv("SUPERUSER_LOGIN"),
+		Password: os.Getenv("SUPERUSER_PASSWORD"),
 	}
 	_, csaErr := userService.RegisterSuperAdmin(&superAdmin)
 	if csaErr != nil && !errors.Is(csaErr, domain.ErrUserAlreadyExist) {
