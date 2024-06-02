@@ -26,7 +26,8 @@ func TestWeightsRepository(t *testing.T) {
 			picture TEXT,
 			title TEXT,
 			alt TEXT,
-			transcript TEXT
+			transcript TEXT,
+			description TEXT
 		);
 		INSERT INTO comics (id, picture) values (1, "pict1.jpg");
 		INSERT INTO comics (id, picture) values (3, "pict2.jpg");

@@ -25,7 +25,8 @@ func TestComicsRepository(t *testing.T) {
     picture TEXT,
     title TEXT,
     alt TEXT,
-    transcript TEXT
+    transcript TEXT,
+    description TEXT
 );`)
 	assert.NoError(t, execErr)
 
@@ -33,18 +34,20 @@ func TestComicsRepository(t *testing.T) {
 	assert.NotNil(t, cRepo)
 
 	comic1 := domain.Comics{
-		ID:         1,
-		Picture:    "comics1.jpg",
-		Title:      "title words",
-		Transcript: "transcript words"}
+		ID:          1,
+		Picture:     "comics1.jpg",
+		Title:       "title words",
+		Transcript:  "transcript words",
+		Description: ""}
 
 	Comics := []domain.Comics{comic1,
 		{
-			ID:         3,
-			Picture:    "comics2.jpg",
-			Title:      "title words",
-			Alt:        "alt words",
-			Transcript: "transcript words",
+			ID:          3,
+			Picture:     "comics2.jpg",
+			Title:       "title words",
+			Alt:         "alt words",
+			Transcript:  "transcript words",
+			Description: "",
 		}}
 
 	//success
@@ -71,5 +74,19 @@ func TestComicsRepository(t *testing.T) {
 	maxID, gmIDErr := cRepo.GetMaxID()
 	assert.NoError(t, gmIDErr)
 	assert.Equal(t, 3, maxID)
+
+	//success
+	ucdErr := cRepo.UpdateComicsDescriptionByID("3", "description words")
+	assert.NoError(t, ucdErr)
+	uComics, gucErr := cRepo.GetComicsByID(3)
+	assert.NoError(t, gucErr)
+	assert.Equal(t, &domain.Comics{
+		ID:          3,
+		Picture:     "comics2.jpg",
+		Title:       "title words",
+		Alt:         "alt words",
+		Transcript:  "transcript words",
+		Description: "description words",
+	}, uComics)
 
 }

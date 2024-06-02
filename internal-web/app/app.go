@@ -16,13 +16,6 @@ func Run(cfg *config.Config) {
 	//main context for interrupt
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
-	//gptAdapter := adapters2.NewGptAPI()
-	//gptAdapter.Test()
-	//err := gptAdapter.Ping()
-	//fmt.Println(err)
-	//err2 := gptAdapter.Test()
-	//fmt.Println(err2)
-
 	xkcdApi := adapters.NewXkcdAPI(cfg.XkcdApiURL)
 	templateExecutor := handlers.NewTemplateExecutor(cfg.TemplatePath)
 	staticHandler := handlers.NewStaticHandler(cfg.StaticPath)

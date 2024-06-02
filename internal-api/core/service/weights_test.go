@@ -201,5 +201,5 @@ func TestFindRelevantPictures(t *testing.T) {
 	}}
 	got, err := weightService.FindRelevantPictures(weights, &weightsFromDB)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"3-picture.jpg", "1-Picture.jpg", "2-Picture.jpg"}, got)
+	assert.Equal(t, []domain.Comics{{ID: 3, Picture: "3-picture.jpg"}, {ID: 1, Picture: "1-Picture.jpg"}, {ID: 2, Picture: "2-Picture.jpg"}}, got)
 }

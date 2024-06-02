@@ -101,10 +101,10 @@ func (m *MockWeightService) EXPECT() *MockWeightServiceMockRecorder {
 }
 
 // FindRelevantPictures mocks base method.
-func (m *MockWeightService) FindRelevantPictures(requestWeights map[string]float64, weights *[]domain.Weights) ([]string, error) {
+func (m *MockWeightService) FindRelevantPictures(requestWeights map[string]float64, weights *[]domain.Weights) ([]domain.Comics, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindRelevantPictures", requestWeights, weights)
-	ret0, _ := ret[0].([]string)
+	ret0, _ := ret[0].([]domain.Comics)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

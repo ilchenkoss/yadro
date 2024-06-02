@@ -36,7 +36,7 @@ func TestNewSearchHandler(t *testing.T) {
 			) {
 				ws.EXPECT().WeightRequest(gomock.Any()).Return(map[string]float64{"word": 1.1})
 				wr.EXPECT().GetWeightsByWords(gomock.Any()).Return(&[]domain.Weights{}, nil)
-				ws.EXPECT().FindRelevantPictures(gomock.Any(), gomock.Any()).Return([]string{"picture1.jpg", "picture2.jpg"}, nil)
+				ws.EXPECT().FindRelevantPictures(gomock.Any(), gomock.Any()).Return([]domain.Comics{{Picture: "picture1.jpg"}, {Picture: "picture2.jpg"}}, nil)
 			},
 			expectedCode: http.StatusOK,
 		}, {
@@ -71,10 +71,11 @@ func TestNewSearchHandler(t *testing.T) {
 
 			mockWeightRepo := mock.NewMockWeightRepository(ctrl)
 			mockWeightService := mock.NewMockWeightService(ctrl)
+			mockComicsRepo := mock.NewMockComicsRepository(ctrl)
 			limiter := utils.NewLimiter(&config.HttpServerConfig{RateLimit: 1, ConcurrencyLimit: 1})
 			tt.mocks(mockWeightRepo, mockWeightService)
 
-			searchHandler := NewSearchHandler(mockWeightRepo, mockWeightService, *limiter)
+			searchHandler := NewSearchHandler(mockWeightRepo, mockWeightService, mockComicsRepo, *limiter)
 
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest("GET", "/pics?search=binary,christmas,tree", bytes.NewBuffer(body))
