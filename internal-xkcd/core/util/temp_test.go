@@ -2,9 +2,9 @@ package util_test
 
 import (
 	"io/fs"
-	"myapp/internal-api/config"
-	"myapp/internal-api/core/util"
-	"myapp/internal-api/core/util/mock"
+	"myapp/internal-xkcd/config"
+	"myapp/internal-xkcd/core/util"
+	"myapp/internal-xkcd/core/util/mock"
 	"reflect"
 	"strings"
 	"testing"

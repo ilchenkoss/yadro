@@ -1,5 +1,5 @@
-token="any users token"
+token="token"
 
 curl -X POST \
   -H "authorization: bearer $token" \
-  http://localhost:222/update
+  http://localhost:22222/update

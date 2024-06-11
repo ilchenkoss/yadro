@@ -1,6 +1,6 @@
 package port
 
-import "myapp/internal-api/core/domain"
+import "myapp/internal-xkcd/core/domain"
 
 type WeightRepository interface {
 	InsertWeights(*[]domain.Weights) error

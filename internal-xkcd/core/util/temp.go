@@ -2,7 +2,7 @@ package util
 
 import (
 	"fmt"
-	"myapp/internal-api/config"
+	"myapp/internal-xkcd/config"
 	"os"
 	"strconv"
 	"strings"

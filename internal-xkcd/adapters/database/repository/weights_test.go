@@ -2,9 +2,9 @@ package repository
 
 import (
 	"github.com/stretchr/testify/assert"
-	"myapp/internal-api/adapters/database"
-	"myapp/internal-api/config"
-	"myapp/internal-api/core/domain"
+	"myapp/internal-xkcd/adapters/database"
+	"myapp/internal-xkcd/config"
+	"myapp/internal-xkcd/core/domain"
 	"testing"
 )
 

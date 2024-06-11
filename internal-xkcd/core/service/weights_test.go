@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/stretchr/testify/assert"
-	"myapp/internal-api/core/domain"
+	"myapp/internal-xkcd/core/domain"
 	"sort"
 	"testing"
 )

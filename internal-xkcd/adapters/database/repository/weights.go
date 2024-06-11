@@ -3,8 +3,8 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"myapp/internal-api/adapters/database"
-	"myapp/internal-api/core/domain"
+	"myapp/internal-xkcd/adapters/database"
+	"myapp/internal-xkcd/core/domain"
 	"strings"
 )
 

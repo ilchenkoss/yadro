@@ -2,7 +2,7 @@ package service
 
 import (
 	"math"
-	"myapp/internal-api/core/domain"
+	"myapp/internal-xkcd/core/domain"
 	"myapp/pkg/words"
 	"sort"
 )
