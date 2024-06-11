@@ -3,7 +3,7 @@ package auth
 import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	auth "myapp/internal-auth/adapters/grpc/proto/gen"
+	auth "myapp/pkg/proto/gen"
 )
 
 const (
