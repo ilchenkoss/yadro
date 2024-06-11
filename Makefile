@@ -1,29 +1,22 @@
 deps:
 	@go get ./...
-xkcd: deps
+grpc_gen:
 	@protoc \
-    		--proto_path internal-xkcd/adapters/grpc/proto\
-    		 --go_out=./internal-xkcd/adapters/grpc/proto/gen\
+    		--proto_path pkg/proto\
+    		 --go_out=./pkg/proto/gen\
     		  --go_opt=paths=source_relative\
-    		   --go-grpc_out=./internal-xkcd/adapters/grpc/proto/gen\
+    		   --go-grpc_out=./pkg/proto/gen\
     			--go-grpc_opt=paths=source_relative \
-    			internal-xkcd/adapters/grpc/proto/*.proto
+    			pkg/proto/*.proto
+xkcd: deps
 	@go build -o xkcd-server ./cmd/xkcd-server
-
 auth: deps
-	@protoc \
-		--proto_path internal-auth/adapters/grpc/proto\
-		 --go_out=./internal-auth/adapters/grpc/proto/gen\
-		  --go_opt=paths=source_relative\
-		   --go-grpc_out=./internal-auth/adapters/grpc/proto/gen\
-			--go-grpc_opt=paths=source_relative \
-			internal-auth/adapters/grpc/proto/*.proto
 	@go build -o auth-server ./cmd/auth-server
-
 web: deps
 	@go build -o web-server ./cmd/web-server
-servers_start:xkcd web auth
+servers_start:grpc_gen xkcd web auth
 	@sh servers_start.sh
+
 test: deps
 	@echo "Running Tests"
 	@mkdir -p coverage
@@ -39,5 +32,8 @@ sec: deps
 	@echo "Running Security Checks"
 	@trivy fs . --scanners vuln
 	@govulncheck ./...
+
 e2e: auth xkcd
 	@sh ./e2e_test.sh
+
+make_all: test lint sec servers_start
