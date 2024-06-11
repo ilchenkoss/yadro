@@ -37,7 +37,7 @@ func (sh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
 			pageData.Logged = true
 		}
 	}
-	eErr := sh.TemplateExecutor.Home(&w, pageData)
+	eErr := sh.TemplateExecutor.Home(w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
@@ -57,7 +57,7 @@ func (fh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	eErr := fh.TemplateExecutor.Login(&w, pageData)
+	eErr := fh.TemplateExecutor.Login(w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
@@ -73,7 +73,7 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 	cValidErr := c.Valid()
 
 	if cErr != nil && cValidErr != nil {
-		eErr := fh.TemplateExecutor.Comics(&w, pageData)
+		eErr := fh.TemplateExecutor.Comics(w, pageData)
 		if eErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
@@ -83,7 +83,7 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 
 	requestString := r.URL.Query().Get("s")
 	if len(requestString) == 0 {
-		eErr := fh.TemplateExecutor.Comics(&w, pageData)
+		eErr := fh.TemplateExecutor.Comics(w, pageData)
 		if eErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
@@ -123,7 +123,7 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageData.Comics = comics
-	eErr := fh.TemplateExecutor.Comics(&w, pageData)
+	eErr := fh.TemplateExecutor.Comics(w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}

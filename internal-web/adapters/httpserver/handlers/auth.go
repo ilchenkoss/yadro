@@ -35,7 +35,7 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 				Logged:   false,
 				LoginErr: "login or password incorrect",
 			}
-			teErr := ah.tExecutor.Login(&w, data)
+			teErr := ah.tExecutor.Login(w, data)
 			if teErr != nil {
 				http.Error(w, "", http.StatusInternalServerError)
 			}

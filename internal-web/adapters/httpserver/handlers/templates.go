@@ -17,7 +17,7 @@ func NewTemplateExecutor(td string) TemplateExecutor {
 	}
 }
 
-func (te *TemplateExecutor) Home(w *http.ResponseWriter, data domain.HomeTemplateData) error {
+func (te *TemplateExecutor) Home(w http.ResponseWriter, data domain.HomeTemplateData) error {
 	files := []string{
 		fmt.Sprintf("%s/index.html", te.templateDir),
 		fmt.Sprintf("%s/body/body.html", te.templateDir),
@@ -30,14 +30,14 @@ func (te *TemplateExecutor) Home(w *http.ResponseWriter, data domain.HomeTemplat
 		return fmt.Errorf("error parsing template Home: %w", pfErr)
 	}
 
-	exErr := ts.Execute(*w, data)
+	exErr := ts.Execute(w, data)
 	if exErr != nil {
 		return fmt.Errorf("error executing template Home: %w", pfErr)
 	}
 	return nil
 }
 
-func (te *TemplateExecutor) Login(w *http.ResponseWriter, data domain.LoginTemplateData) error {
+func (te *TemplateExecutor) Login(w http.ResponseWriter, data domain.LoginTemplateData) error {
 
 	files := []string{
 		fmt.Sprintf("%s/index.html", te.templateDir),
@@ -51,14 +51,14 @@ func (te *TemplateExecutor) Login(w *http.ResponseWriter, data domain.LoginTempl
 		return fmt.Errorf("error parsing template Login: %w", pfErr)
 	}
 
-	exErr := ts.Execute(*w, data)
+	exErr := ts.Execute(w, data)
 	if exErr != nil {
 		return fmt.Errorf("error executing template Login: %w", pfErr)
 	}
 	return nil
 }
 
-func (te *TemplateExecutor) Comics(w *http.ResponseWriter, data domain.ComicsTemplateData) error {
+func (te *TemplateExecutor) Comics(w http.ResponseWriter, data domain.ComicsTemplateData) error {
 
 	files := []string{
 		fmt.Sprintf("%s/index.html", te.templateDir),
@@ -72,7 +72,7 @@ func (te *TemplateExecutor) Comics(w *http.ResponseWriter, data domain.ComicsTem
 		return fmt.Errorf("error parsing template Comics: %w", pfErr)
 	}
 
-	exErr := ts.Execute(*w, data)
+	exErr := ts.Execute(w, data)
 	if exErr != nil {
 		return fmt.Errorf("error executing template Comics: %w", pfErr)
 	}
