@@ -1,0 +1,26 @@
+scrape:
+  source_url: "https://xkcd.com/"
+  scrape_pages_limit: -1   # -1 -> all pages
+  request_retries: 3
+  parallel : 50
+
+database:
+  database_path : "internal-xkcd/storage/database.db"
+  database_dsn : "sqlite://internal-xkcd/storage/database.db"
+
+temp:
+  temp_dir : "./internal-xkcd/storage/temp"
+  temp_folder_pattern : "temp_xkcd_"
+  temp_file_pattern : "response_xkcd" # do not use "-" symbol
+
+httpserver:
+  host: "127.0.0.1"
+  port: "22222"
+  token_max_time: 720 #minutes
+  concurrency_limit: 6
+  rate_limit: 3
+  env_path: "./internal-xkcd/config/.env"
+
+auth_grpc:
+  host: "127.0.0.1"
+  port: "11111"

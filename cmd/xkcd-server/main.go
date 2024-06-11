@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"myapp/internal-api/app"
-	"myapp/internal-api/config"
+	"myapp/internal-xkcd/app"
+	"myapp/internal-xkcd/config"
 )
 
 func main() {
 
-	configPath := flag.String("c", "./internal-api/config/config.yaml", "path to cfg *.yaml file")
+	configPath := flag.String("c", "./internal-xkcd/config/config.yaml", "path to cfg *.yaml file")
 	flag.Parse()
 
 	cfg, cfgErr := config.GetConfig(*configPath)
