@@ -2,25 +2,27 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"myapp/internal-xkcd/adapters"
 	"myapp/internal-xkcd/adapters/httpserver/handlers/utils"
 	"myapp/internal-xkcd/core/port"
 	"net/http"
+	"strconv"
 )
 
 type SearchHandler struct {
 	wr port.WeightRepository
 	cr port.ComicsRepository
 	ws port.WeightService
+	ga *adapters.GptAPI
 }
 
-func NewSearchHandler(wr port.WeightRepository, ws port.WeightService, cr port.ComicsRepository, l utils.Limiter) *SearchHandler {
+func NewSearchHandler(wr port.WeightRepository, ws port.WeightService, cr port.ComicsRepository, ga *adapters.GptAPI, l utils.Limiter) *SearchHandler {
 	return &SearchHandler{
 		wr,
 		cr,
 		ws,
+		ga,
 	}
 }
 
@@ -63,13 +65,26 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 func (s *SearchHandler) Description(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	requestComicID := r.URL.Query().Get("description")
-	fmt.Println("requestID", requestComicID)
-	result := fmt.Sprintf("test comics %s description", requestComicID)
 
-	err1 := s.cr.UpdateComicsDescriptionByID(requestComicID, result)
-	fmt.Println(err1)
+	comicID, atoiErr := strconv.Atoi(requestComicID)
+	if atoiErr != nil {
+		http.Error(w, "comic ID error", http.StatusInternalServerError)
+	}
+	comic, gcErr := s.cr.GetComicsByID(comicID)
+	if gcErr != nil {
+		http.Error(w, "database error", http.StatusInternalServerError)
+	}
 
-	//w.WriteHeader(http.StatusOK)
+	description, cdErr := s.ga.GetComicsDescription(*comic)
+	if cdErr != nil {
+		http.Error(w, "gpt error", http.StatusInternalServerError)
+	}
+
+	ucdErr := s.cr.UpdateComicsDescriptionByID(requestComicID, description)
+	if ucdErr != nil {
+		http.Error(w, "database error", http.StatusInternalServerError)
+	}
+
 	err := json.NewEncoder(w).Encode(utils.NewDescriptionResponse(true, "Success"))
 	if err != nil {
 		//nothing
