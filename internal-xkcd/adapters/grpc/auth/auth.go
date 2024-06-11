@@ -10,6 +10,7 @@ import (
 	pb "myapp/internal-xkcd/adapters/grpc/proto/gen"
 	"myapp/internal-xkcd/config"
 	"myapp/internal-xkcd/core/domain"
+	pb "myapp/pkg/proto/gen"
 )
 
 type Auth struct {

@@ -9,6 +9,7 @@ import (
 	auth "myapp/internal-auth/adapters/grpc/proto/gen"
 	"myapp/internal-auth/core/domain"
 	"myapp/internal-auth/core/port"
+	auth "myapp/pkg/proto/gen"
 )
 
 type server struct {
