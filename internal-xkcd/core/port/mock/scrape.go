@@ -5,8 +5,8 @@
 package mock
 
 import (
-	domain "myapp/internal-api/core/domain"
-	util "myapp/internal-api/core/util"
+	domain "myapp/internal-xkcd/core/domain"
+	util "myapp/internal-xkcd/core/util"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"

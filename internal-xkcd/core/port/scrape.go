@@ -1,8 +1,8 @@
 package port
 
 import (
-	"myapp/internal-api/core/domain"
-	"myapp/internal-api/core/util"
+	"myapp/internal-xkcd/core/domain"
+	"myapp/internal-xkcd/core/util"
 )
 
 type Scraper interface {

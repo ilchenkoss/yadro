@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"myapp/internal-api/adapters/httpserver/handlers/utils"
-	"myapp/internal-api/core/port"
+	"myapp/internal-xkcd/adapters"
+	"myapp/internal-xkcd/adapters/httpserver/handlers/utils"
+	"myapp/internal-xkcd/core/port"
 	"net/http"
 )
 
