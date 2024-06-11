@@ -92,10 +92,14 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 
 	descriptionID := r.URL.Query().Get("d")
 
+	comicIndex := r.URL.Query().Get("ci")
+
 	if len(descriptionID) != 0 {
 		ucErr := fh.XkcdAPI.UpdateDescription(descriptionID, c.Value)
-		fmt.Println(ucErr)
-		comicIndex := r.URL.Query().Get("ci")
+		if ucErr != nil {
+			http.Redirect(w, r, fmt.Sprintf("/comics?s=%s&ci=%s", requestString, comicIndex), 301)
+			return
+		}
 		http.Redirect(w, r, fmt.Sprintf("/comics?s=%s&ci=%s", requestString, comicIndex), 301)
 		return
 	}
