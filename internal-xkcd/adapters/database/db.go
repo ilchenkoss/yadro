@@ -3,13 +3,12 @@ package database
 import (
 	"database/sql"
 	"embed"
-	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
-	"myapp/internal-auth/config"
+	"myapp/internal-xkcd/config"
 )
 
 //go:embed migrations/*.sql
@@ -17,11 +16,11 @@ var migrationsFS embed.FS
 
 type DB struct {
 	*sql.DB
-	Cfg *config.Config
+	Cfg *config.DatabaseConfig
 }
 
-func NewConnection(cfg *config.Config) (*DB, error) {
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/db.db", cfg.StoragePath))
+func NewConnection(cfg *config.DatabaseConfig) (*DB, error) {
+	db, err := sql.Open("sqlite3", cfg.DatabasePath)
 
 	if err != nil {
 		return nil, err
@@ -47,7 +46,7 @@ func (d *DB) MakeMigrations() error {
 		return drErr
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", srcDriver, fmt.Sprintf("sqlite://%s/db.db", d.Cfg.StoragePath))
+	m, err := migrate.NewWithSourceInstance("iofs", srcDriver, d.Cfg.DatabaseDSN)
 
 	defer func(m *migrate.Migrate) {
 		if cErr, _ := m.Close(); cErr != nil {

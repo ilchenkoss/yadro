@@ -57,7 +57,7 @@ func TestConcurrencyLimiter(t *testing.T) {
 func TestRateLimiter(t *testing.T) {
 	rl := NewRateLimiter(5)
 
-	userID := uint64(1)
+	userID := int64(1)
 
 	//simulate 5 requests
 	for i := 0; i < 5; i++ {

@@ -48,44 +48,35 @@ func Run(cfg *config.Config) {
 	}
 	slog.Info("Migrations ok")
 
-	//Repository dependency injection
+	authClient, aErr := auth.NewAuth(&cfg.AuthGRPC, ctx)
+	if aErr != nil {
+		panic(aErr)
+	}
+
 	comicsRepo := repository.NewComicsRepository(dbConnection)
-	userRepo := repository.NewUserRepository(dbConnection)
 	weightsRepo := repository.NewWeightsRepository(dbConnection)
 
 	//Service dependency injection
 	weightService := service.NewWeightService()
 	scraperClient := scraper.NewScraper(1)
 	scrapeService := service.NewScrapeService(ctx, scraperClient, cfg.Scrape)
-	tokenService := service.NewTokenService(cfg.HttpServer)
-	userService := service.NewUserService(userRepo)
-	authService := service.NewAuthService(userRepo, tokenService)
 
 	//init superAdmin
-	superAdmin := domain.User{
-		Role:     domain.SuperAdmin,
-		Login:    os.Getenv("SUPERUSER_LOGIN"),
-		Password: os.Getenv("SUPERUSER_PASSWORD"),
-	}
-	_, csaErr := userService.RegisterSuperAdmin(&superAdmin)
-	if csaErr != nil && !errors.Is(csaErr, domain.ErrUserAlreadyExist) {
-
-		if errors.Is(csaErr, domain.ErrPasswordIncorrect) ||
-			errors.Is(csaErr, domain.ErrUserNotSuperAdmin) {
-			panic("super admin login or password incorrect")
+	_, csaErr := authClient.Register(os.Getenv("SUPERUSER_LOGIN"), os.Getenv("SUPERUSER_PASSWORD"), domain.SuperUser)
+	if csaErr != nil {
+		if !errors.Is(csaErr, domain.ErrUserAlreadyExist) {
+			panic(csaErr)
 		}
-
-		panic(csaErr)
 	}
 	slog.Info("SuperAdmin OK")
 
 	//Handlers dependency injection
+	gptAPI := adapters.NewGptAPI()
 	limiter := utils.NewLimiter(&cfg.HttpServer)
 	fs := util.OSFileSystem{}
+	authHandler := handlers.NewAuthHandler(authClient)
 	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg, fs)
-	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, comicsRepo, *limiter)
-	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService, userRepo)
+	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, comicsRepo, gptAPI, *limiter)
 
 	//insert words positions for weights if not exist
 	ipErr := weightsRepo.InsertPositions(&[]domain.Positions{
@@ -98,15 +89,12 @@ func Run(cfg *config.Config) {
 
 	//Init Router
 	routerHandlers := &httpserver.Handlers{
-		TokenService:  tokenService,
-		UserRepo:      userRepo,
 		Limiter:       limiter,
-		UserHandler:   userHandler,
+		AuthHandler:   authHandler,
 		ScrapeHandler: scrapeHandler,
 		SearchHandler: searchHandler,
-		AuthHandler:   authHandler,
 	}
-	router := httpserver.NewRouter(routerHandlers)
+	router := httpserver.NewRouter(routerHandlers, authClient)
 
 	//init HttpServer
 	httpCtx := context.Background()

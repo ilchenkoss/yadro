@@ -5,7 +5,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
-	"myapp/internal-api/config"
+	"myapp/internal-xkcd/config"
 	"testing"
 )
 

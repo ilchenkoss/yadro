@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "auth.v1;auth";
+
+service auth {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc UserRole (UserRoleRequest) returns (UserRoleResponse);
+}
+
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+  string role = 3;
+}
+
+message RegisterResponse {
+  int64 user_id = 1;
+}
+
+message LoginRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message UserRoleRequest {
+  int64 user_id = 1;
+}
+
+message UserRoleResponse {
+  string user_role = 1;
+}

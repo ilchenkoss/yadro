@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	Scrape     ScrapeConfig
-	Database   DatabaseConfig
-	Temp       TempConfig
-	HttpServer HttpServerConfig
+	Scrape     ScrapeConfig     `yaml:"scrape"`
+	Database   DatabaseConfig   `yaml:"database"`
+	Temp       TempConfig       `yaml:"temp"`
+	HttpServer HttpServerConfig `yaml:"httpserver"`
+	AuthGRPC   AuthGRPC         `yaml:"auth_grpc"`
 }
 
 type ScrapeConfig struct {
@@ -41,6 +42,11 @@ type HttpServerConfig struct {
 	RateLimit        int    `yaml:"rate_limit"`
 }
 
+type AuthGRPC struct {
+	Host string `yaml:"host"`
+	Port string `yaml:"port"`
+}
+
 func GetConfig(configPath string) (*Config, error) {
 
 	var config Config
@@ -59,12 +65,6 @@ func GetConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	//envLoadErr := godotenv.Load("./internal-api/config/.env")
-	envLoadErr := godotenv.Load("./internal-api/config/.env.test")
-	if envLoadErr != nil {
-		slog.Error("Error loading .env file: %v", err)
-	}
-
 	if decodeErr := yaml.NewDecoder(file).Decode(&config); decodeErr != nil {
 		slog.Error("Error decode config file: ", "error", decodeErr.Error())
 		return nil, decodeErr
@@ -73,6 +73,7 @@ func GetConfig(configPath string) (*Config, error) {
 	envLoadErr := godotenv.Load(config.HttpServer.EnvPath)
 	if envLoadErr != nil {
 		slog.Error("Error loading .env file: %v", "error", err.Error())
+		return nil, envLoadErr
 	}
 
 	return &config, nil

@@ -1,13 +1,8 @@
 package port
 
-import "myapp/internal-auth/core/domain"
+import "myapp/internal-xkcd/core/domain"
 
-type TokenService interface {
-	CreateToken(userID int64) (string, error)
-	GetUserID(token string) (int64, error)
-}
-
-type AuthService interface {
+type AuthClient interface {
 	Login(login string, password string) (string, error)
 	Register(login string, password string, role domain.UserRole) (int64, error)
 	UserRole(userID int64) (domain.UserRole, error)
