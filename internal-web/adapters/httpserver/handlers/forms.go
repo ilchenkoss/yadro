@@ -3,9 +3,11 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"myapp/internal-web/core/domain"
 	"myapp/internal-web/core/port"
 	"net/http"
+	"time"
 )
 
 type FormsHandler struct {
@@ -22,24 +24,57 @@ func NewFormsHandler(te TemplateExecutor, xkcdAPI port.XkcdAPI, ah AuthHandler) 
 	}
 }
 
-func (sh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
+func validateToken(t string) error {
+
+	//token validate
+	token, _, err := new(jwt.Parser).ParseUnverified(t, jwt.MapClaims{})
+	if err != nil {
+		return errors.New("token not valid")
+	}
+
+	//exp time validate
+	expTime, sErr := token.Claims.GetExpirationTime()
+	if sErr != nil {
+		return errors.New("token not valid")
+	}
+
+	uExpTime := expTime.Time
+
+	if time.Now().After(uExpTime) {
+		return errors.New("token expired")
+	}
+
+	return nil
+}
+
+func (fh *FormsHandler) HomeForm(w http.ResponseWriter, r *http.Request) {
 
 	var pageData = domain.HomeTemplateData{
 		Logged: false,
 	}
 
 	c, cErr := r.Cookie("access_token")
+	//cookie exist
 	if cErr == nil {
-		cValid := c.Valid()
-		if cValid == nil {
-			pageData.Logged = true
+		//cookies valid
+		if cValidErr := c.Valid(); cValidErr != nil {
+			fh.AuthHandler.Logout(w, r)
+			return
 		}
+		//token valid
+		if vErr := validateToken(c.Value); vErr != nil {
+			fh.AuthHandler.Logout(w, r)
+			return
+		}
+		pageData.Logged = true
 	}
-	eErr := sh.TemplateExecutor.Home(w, pageData)
+
+	eErr := fh.TemplateExecutor.Home(w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
+
 func (fh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 
 	var pageData = domain.LoginTemplateData{
@@ -47,12 +82,19 @@ func (fh *FormsHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c, cErr := r.Cookie("access_token")
-
+	//cookie exist
 	if cErr == nil {
-		cValidErr := c.Valid()
-		if cValidErr == nil {
-			pageData.Logged = true
+		//cookies valid
+		if cValidErr := c.Valid(); cValidErr != nil {
+			fh.AuthHandler.Logout(w, r)
+			return
 		}
+		//token valid
+		if vErr := validateToken(c.Value); vErr != nil {
+			fh.AuthHandler.Logout(w, r)
+			return
+		}
+		pageData.Logged = true
 	}
 
 	eErr := fh.TemplateExecutor.Login(w, pageData)
@@ -68,15 +110,25 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c, cErr := r.Cookie("access_token")
-	cValidErr := c.Valid()
-
-	if cErr != nil && cValidErr != nil {
+	//cookie !exist
+	if cErr != nil {
 		eErr := fh.TemplateExecutor.Comics(w, pageData)
 		if eErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
+	}
+
+	//cookies valid
+	if cValidErr := c.Valid(); cValidErr != nil {
+		fh.AuthHandler.Logout(w, r)
 		return
 	}
+	//token valid
+	if vErr := validateToken(c.Value); vErr != nil {
+		fh.AuthHandler.Logout(w, r)
+		return
+	}
+
 	pageData.Logged = true
 
 	requestString := r.URL.Query().Get("s")
