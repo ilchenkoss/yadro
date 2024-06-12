@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"myapp/internal-xkcd/core/domain"
 	"net/http"
 	"os"
@@ -100,7 +101,7 @@ func (g *GptAPI) GetComicsDescription(comic domain.Comics) (string, error) {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			//nothing
+			slog.Debug("unhandled error", "error", err)
 		}
 	}(resp.Body)
 
