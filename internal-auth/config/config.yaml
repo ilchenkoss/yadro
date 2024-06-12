@@ -1,6 +1,6 @@
 env: dev
 storage_path: "internal-auth/storage"
-token_ttl: 10s
+token_ttl: 10m
 
 server:
   port: 11111

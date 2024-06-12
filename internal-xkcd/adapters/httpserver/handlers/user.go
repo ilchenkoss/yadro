@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"myapp/internal-xkcd/core/domain"
 	"myapp/internal-xkcd/core/port"
 	"net/http"
@@ -33,7 +32,6 @@ func (uh *UserHandler) ToAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if crErr := uh.uc.ChangeRole(reqBody.ReqUserID, domain.Admin); crErr != nil {
-		fmt.Println(crErr)
 		switch {
 		case errors.Is(crErr, domain.ErrUserNotFound):
 			http.Error(w, "req user not found", http.StatusBadRequest)
