@@ -12,9 +12,9 @@ var (
 
 	ErrUserAlreadyAdmin = errors.New("user role already Admin")
 
-	ErrUserNotFound      = errors.New("user not found")
-	ErrUserAlreadyExist  = errors.New("user already exist")
-	ErrUserNotSuperAdmin = errors.New("user not super admin")
+	ErrUserNotFound     = errors.New("user not found")
+	ErrUserAlreadyExist = errors.New("user already exist")
+	ErrUserNotSuperUser = errors.New("user not super user")
 
 	ErrPasswordIncorrect = errors.New("password incorrect")
 )

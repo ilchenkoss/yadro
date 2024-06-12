@@ -71,17 +71,8 @@ func (as *AuthService) Register(login string, password string, role domain.UserR
 	return uUser.ID, nil
 }
 
-func (as *AuthService) UserRole(userID int64) (domain.UserRole, error) {
-	user, guErr := as.ur.GetUserByUserID(userID)
-	if guErr != nil {
-		//domain.ErrUserNotFound
-		return "", guErr
-	}
-	return user.Role, nil
-}
-
-func (as *AuthService) UserID(token string) (int64, error) {
-	userID, guIDErr := as.ts.GetUserID(token)
+func (us *AuthService) UserID(token string) (int64, error) {
+	userID, guIDErr := us.ts.GetUserID(token)
 	if guIDErr != nil {
 		//domain.ErrTokenNotValid
 		//domain.ErrTokenExpired

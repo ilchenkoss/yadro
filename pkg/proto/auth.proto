@@ -7,8 +7,12 @@ option go_package = "auth.v1;auth";
 service auth {
   rpc Register (RegisterRequest) returns (RegisterResponse);
   rpc Login (LoginRequest) returns (LoginResponse);
-  rpc UserRole (UserRoleRequest) returns (UserRoleResponse);
   rpc UserID (UserIDRequest) returns (UserIDResponse);
+}
+
+service user {
+  rpc UserRole (UserRoleRequest) returns (UserRoleResponse);
+  rpc ChangeRole (ChangeRoleRequest) returns (ChangeRoleResponse) ;
 }
 
 message RegisterRequest {
@@ -45,3 +49,10 @@ message UserIDRequest {
 message UserIDResponse {
   int64 user_id = 1;
 }
+
+message ChangeRoleRequest {
+  int64 req_user_id = 1;
+  string new_user_role = 2;
+}
+
+message ChangeRoleResponse {}

@@ -12,19 +12,21 @@ import (
 	auth "myapp/pkg/proto/gen"
 )
 
-type server struct {
+type AuthServer struct {
 	auth.UnimplementedAuthServer
 	as   port.AuthService
 	slog *slog.Logger
 }
 
-func Register(gRPC *grpc.Server, authService port.AuthService, slog *slog.Logger) {
-	auth.RegisterAuthServer(gRPC, &server{
+func NewAuthServer(gRPC *grpc.Server, authService port.AuthService, slog *slog.Logger) {
+	aServer := &AuthServer{
 		as:   authService,
-		slog: slog})
+		slog: slog,
+	}
+	auth.RegisterAuthServer(gRPC, aServer)
 }
 
-func (s *server) Login(ctx context.Context, req *auth.LoginRequest) (*auth.LoginResponse, error) {
+func (s *AuthServer) Login(ctx context.Context, req *auth.LoginRequest) (*auth.LoginResponse, error) {
 	op := "gRPC.Auth.Login"
 	s.slog.With(slog.String("op", op))
 
@@ -48,7 +50,7 @@ func (s *server) Login(ctx context.Context, req *auth.LoginRequest) (*auth.Login
 	}, nil
 }
 
-func (s *server) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
+func (s *AuthServer) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
 	op := "gRPC.Auth.Register"
 	s.slog.With(slog.String("op", op))
 
@@ -70,28 +72,7 @@ func (s *server) Register(ctx context.Context, req *auth.RegisterRequest) (*auth
 	return &auth.RegisterResponse{UserId: userID}, nil
 }
 
-func (s *server) UserRole(ctx context.Context, req *auth.UserRoleRequest) (*auth.UserRoleResponse, error) {
-	op := "gRPC.Auth.UserRole"
-	s.slog.With(slog.String("op", op))
-
-	if vErr := ValidateUserRole(req); vErr != nil {
-		return nil, vErr
-	}
-
-	userRole, iErr := s.as.UserRole(req.GetUserId())
-	if iErr != nil {
-		switch {
-		case errors.Is(iErr, domain.ErrUserNotFound):
-			return nil, status.Error(codes.NotFound, "user not found")
-		default:
-			s.slog.Debug("unhandled error: ", "error", iErr)
-			return nil, status.Error(codes.Internal, "internal error")
-		}
-	}
-	return &auth.UserRoleResponse{UserRole: string(userRole)}, nil
-}
-
-func (s *server) UserID(ctx context.Context, req *auth.UserIDRequest) (*auth.UserIDResponse, error) {
+func (s *AuthServer) UserID(ctx context.Context, req *auth.UserIDRequest) (*auth.UserIDResponse, error) {
 	op := "gRPC.Auth.UserID"
 	s.slog.With(slog.String("op", op))
 

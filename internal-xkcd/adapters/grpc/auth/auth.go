@@ -70,35 +70,6 @@ func (a *Auth) Register(login string, password string, role domain.UserRole) (in
 	return regRes.GetUserId(), nil
 }
 
-func (a *Auth) UserRole(userID int64) (domain.UserRole, error) {
-	role, rErr := a.AuthClient.UserRole(a.Ctx, &pb.UserRoleRequest{UserId: userID})
-
-	if rErr != nil {
-		st, ok := status.FromError(rErr)
-		if ok {
-			switch st.Code() {
-			case codes.NotFound:
-				return "", domain.ErrUserNotFound
-			case codes.InvalidArgument:
-				return "", rErr
-			default:
-				return "", fmt.Errorf("unknown error: %v", st.Message())
-			}
-		}
-
-	}
-
-	userRole := role.GetUserRole()
-
-	ur := domain.UserRole(userRole)
-
-	if ur != "" {
-		return ur, nil
-	}
-
-	return "", domain.ErrUserRoleUnexpected
-}
-
 func (a *Auth) UserID(token string) (int64, error) {
 
 	role, rErr := a.AuthClient.UserID(a.Ctx, &pb.UserIDRequest{Token: token})
@@ -117,7 +88,7 @@ func (a *Auth) UserID(token string) (int64, error) {
 				return 0, fmt.Errorf("unknown error: %v", st.Message())
 			}
 		}
-
+		return 0, rErr
 	}
 
 	return role.GetUserId(), nil

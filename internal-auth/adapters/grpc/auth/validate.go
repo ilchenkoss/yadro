@@ -3,6 +3,7 @@ package auth
 import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"myapp/internal-auth/core/domain"
 	auth "myapp/pkg/proto/gen"
 )
 
@@ -43,6 +44,20 @@ func ValidateUserRole(req *auth.UserRoleRequest) error {
 func ValidateUserID(req *auth.UserIDRequest) error {
 	if req.GetToken() == "" {
 		return status.Error(codes.InvalidArgument, "token is required")
+	}
+	return nil
+}
+
+func ValidateChangeRole(req *auth.ChangeRoleRequest) error {
+	if req.GetNewUserRole() == "" {
+		return status.Error(codes.InvalidArgument, "new user role is required")
+	}
+	ur := domain.UserRole(req.GetNewUserRole())
+	if ur == "" {
+		return status.Error(codes.InvalidArgument, "new user role must be 'admin', 'super_user', 'ordinary'")
+	}
+	if req.GetReqUserId() == emptyValue {
+		return status.Error(codes.InvalidArgument, "req user id is required")
 	}
 	return nil
 }

@@ -30,7 +30,7 @@ func RateLimiterMiddleware(id int64, l *Limiter, next http.HandlerFunc) http.Han
 	}
 }
 
-func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ac port.AuthClient, l *Limiter, next http.HandlerFunc) http.HandlerFunc {
+func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ac port.AuthClient, uc port.UserClient, l *Limiter, next http.HandlerFunc) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -64,7 +64,7 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ac port.AuthClient, 
 			}
 		}
 
-		userRole, rErr := ac.UserRole(userID)
+		userRole, rErr := uc.UserRole(userID)
 		if rErr != nil {
 			//domain.ErrUserNotFound
 			http.Error(w, "token is not valid", http.StatusUnauthorized)
@@ -79,28 +79,28 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ac port.AuthClient, 
 	}
 }
 
-func OrdinaryMiddleware(f http.HandlerFunc, ac port.AuthClient, l *Limiter) http.HandlerFunc {
+func OrdinaryMiddleware(f http.HandlerFunc, ac port.AuthClient, uc port.UserClient, l *Limiter) http.HandlerFunc {
 	roles := map[domain.UserRole]bool{
 		domain.Admin:     true,
 		domain.Ordinary:  true,
 		domain.SuperUser: true,
 	}
-	return AuthMiddleware(roles, ac, l, f)
+	return AuthMiddleware(roles, ac, uc, l, f)
 }
 
-func AdminMiddleware(f http.HandlerFunc, ac port.AuthClient, l *Limiter) http.HandlerFunc {
+func AdminMiddleware(f http.HandlerFunc, ac port.AuthClient, uc port.UserClient, l *Limiter) http.HandlerFunc {
 	roles := map[domain.UserRole]bool{
 		domain.Admin:     true,
 		domain.SuperUser: true,
 	}
-	return AuthMiddleware(roles, ac, l, f)
+	return AuthMiddleware(roles, ac, uc, l, f)
 }
 
-func SuperUserMiddleware(f http.HandlerFunc, ac port.AuthClient, l *Limiter) http.HandlerFunc {
+func SuperUserMiddleware(f http.HandlerFunc, ac port.AuthClient, uc port.UserClient, l *Limiter) http.HandlerFunc {
 	roles := map[domain.UserRole]bool{
 		domain.SuperUser: true,
 	}
-	return AuthMiddleware(roles, ac, l, f)
+	return AuthMiddleware(roles, ac, uc, l, f)
 }
 
 func GuestMiddleware(f http.HandlerFunc, l *Limiter) http.HandlerFunc {

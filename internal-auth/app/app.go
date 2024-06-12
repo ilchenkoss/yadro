@@ -38,8 +38,10 @@ func New(
 
 	tokenService := service.NewTokenService(cfg)
 	authService := service.NewAuthService(userRepo, tokenService)
+	userService := service.NewUserService(userRepo, authService)
 
-	auth.Register(gRPCServer, authService, slog)
+	auth.NewUserServer(gRPCServer, userService, slog)
+	auth.NewAuthServer(gRPCServer, authService, slog)
 
 	return &App{
 		slog:       slog,

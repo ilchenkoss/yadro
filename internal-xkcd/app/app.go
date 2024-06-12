@@ -9,6 +9,7 @@ import (
 	"myapp/internal-xkcd/adapters/database"
 	"myapp/internal-xkcd/adapters/database/repository"
 	"myapp/internal-xkcd/adapters/grpc/auth"
+	user "myapp/internal-xkcd/adapters/grpc/user"
 	"myapp/internal-xkcd/adapters/httpserver"
 	"myapp/internal-xkcd/adapters/httpserver/handlers"
 	"myapp/internal-xkcd/adapters/httpserver/handlers/utils"
@@ -52,6 +53,10 @@ func Run(cfg *config.Config) {
 	if aErr != nil {
 		panic(aErr)
 	}
+	userClient, uErr := user.NewUser(&cfg.AuthGRPC, ctx)
+	if uErr != nil {
+		panic(uErr)
+	}
 
 	comicsRepo := repository.NewComicsRepository(dbConnection)
 	weightsRepo := repository.NewWeightsRepository(dbConnection)
@@ -75,6 +80,7 @@ func Run(cfg *config.Config) {
 	limiter := utils.NewLimiter(&cfg.HttpServer)
 	fs := util.OSFileSystem{}
 	authHandler := handlers.NewAuthHandler(authClient)
+	userHandler := handlers.NewUserHandler(userClient)
 	scrapeHandler := handlers.NewScrapeHandler(scrapeService, weightService, comicsRepo, weightsRepo, ctx, cfg, fs)
 	searchHandler := handlers.NewSearchHandler(weightsRepo, weightService, comicsRepo, gptAPI, *limiter)
 
@@ -91,10 +97,11 @@ func Run(cfg *config.Config) {
 	routerHandlers := &httpserver.Handlers{
 		Limiter:       limiter,
 		AuthHandler:   authHandler,
+		UserHandler:   userHandler,
 		ScrapeHandler: scrapeHandler,
 		SearchHandler: searchHandler,
 	}
-	router := httpserver.NewRouter(routerHandlers, authClient)
+	router := httpserver.NewRouter(routerHandlers, authClient, userClient)
 
 	//init HttpServer
 	httpCtx := context.Background()

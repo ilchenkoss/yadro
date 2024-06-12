@@ -61,11 +61,11 @@ func (u *UserRepository) GetUserByUserID(userID int64) (*domain.User, error) {
 	return &user, nil
 }
 
-//func (u *UserRepository) UpdateUser(user *domain.User) error {
-//	_, err := u.db.Exec("UPDATE users SET login = ?, password = ?, salt = ?, role = ? WHERE id = ?",
-//		user.Login, user.Password, user.Salt, user.Role, user.ID)
-//	if err != nil {
-//		return fmt.Errorf("error updating user: %w", err)
-//	}
-//	return nil
-//}
+func (u *UserRepository) UpdateUserByUserID(user *domain.User) error {
+	_, err := u.db.Exec("UPDATE users SET login = ?, password = ?, salt = ?, role = ? WHERE id = ?",
+		user.Login, user.Password, user.Salt, user.Role, user.ID)
+	if err != nil {
+		return fmt.Errorf("error updating user: %w", err)
+	}
+	return nil
+}
