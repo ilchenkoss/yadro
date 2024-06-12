@@ -20,7 +20,7 @@ func Run(cfg *config.Config) {
 	templateExecutor := handlers.NewTemplateExecutor(cfg.TemplatePath)
 	staticHandler := handlers.NewStaticHandler(cfg.StaticPath)
 	authHandler := handlers.NewAuthHandler(xkcdApi, templateExecutor)
-	formsHandler := handlers.NewFormsHandler(templateExecutor, xkcdApi, *authHandler, cfg.StaticPath)
+	formsHandler := handlers.NewFormsHandler(templateExecutor, xkcdApi, *authHandler)
 
 	//Init Router
 	routerHandlers := &httpserver.Handlers{

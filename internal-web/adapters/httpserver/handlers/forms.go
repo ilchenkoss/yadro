@@ -9,15 +9,13 @@ import (
 )
 
 type FormsHandler struct {
-	StaticFS         http.FileSystem
 	TemplateExecutor TemplateExecutor
 	XkcdAPI          port.XkcdAPI
 	AuthHandler      AuthHandler
 }
 
-func NewFormsHandler(te TemplateExecutor, xkcdAPI port.XkcdAPI, ah AuthHandler, staticPath string) *FormsHandler {
+func NewFormsHandler(te TemplateExecutor, xkcdAPI port.XkcdAPI, ah AuthHandler) *FormsHandler {
 	return &FormsHandler{
-		StaticFS:         http.Dir(staticPath),
 		TemplateExecutor: te,
 		XkcdAPI:          xkcdAPI,
 		AuthHandler:      ah,

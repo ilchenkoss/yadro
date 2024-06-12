@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	pb "myapp/internal-xkcd/adapters/grpc/proto/gen"
 	"myapp/internal-xkcd/config"
 	"myapp/internal-xkcd/core/domain"
 	pb "myapp/pkg/proto/gen"
@@ -20,7 +19,7 @@ type Auth struct {
 
 func NewAuth(cfgAuthGRPC *config.AuthGRPC, ctx context.Context) (*Auth, error) {
 
-	conn, cErr := grpc.Dial(fmt.Sprintf("%s:%s", cfgAuthGRPC.Host, cfgAuthGRPC.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, cErr := grpc.NewClient(fmt.Sprintf("%s:%s", cfgAuthGRPC.Host, cfgAuthGRPC.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if cErr != nil {
 		return nil, cErr
 	}
@@ -40,14 +39,7 @@ func (a *Auth) Login(login string, password string) (string, error) {
 		if ok {
 			switch st.Code() {
 			case codes.InvalidArgument:
-				switch st.Message() {
-				case "login is required":
-					return "", domain.ErrLoginIncorrect
-				case "password is required":
-					return "", domain.ErrPasswordIncorrect
-				default:
-					return "", fmt.Errorf("unknown error: %v", st.Message())
-				}
+				return "", lErr
 			case codes.NotFound:
 				return "", domain.ErrUserNotFound
 			default:
@@ -66,14 +58,7 @@ func (a *Auth) Register(login string, password string, role domain.UserRole) (in
 		if ok {
 			switch st.Code() {
 			case codes.InvalidArgument:
-				switch st.Message() {
-				case "login is required":
-					return 0, domain.ErrLoginIncorrect
-				case "password is required":
-					return 0, domain.ErrPasswordIncorrect
-				default:
-					return 0, fmt.Errorf("unknown error: %v", st.Message())
-				}
+				return 0, rErr
 			case codes.AlreadyExists:
 				return 0, domain.ErrUserAlreadyExist
 			default:
@@ -94,6 +79,8 @@ func (a *Auth) UserRole(userID int64) (domain.UserRole, error) {
 			switch st.Code() {
 			case codes.NotFound:
 				return "", domain.ErrUserNotFound
+			case codes.InvalidArgument:
+				return "", rErr
 			default:
 				return "", fmt.Errorf("unknown error: %v", st.Message())
 			}
