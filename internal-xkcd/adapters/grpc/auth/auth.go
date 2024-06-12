@@ -111,3 +111,27 @@ func (a *Auth) UserRole(userID int64) (domain.UserRole, error) {
 
 	return "", domain.ErrUserRoleUnexpected
 }
+
+func (a *Auth) UserID(token string) (int64, error) {
+
+	role, rErr := a.AuthClient.UserID(a.Ctx, &pb.UserIDRequest{Token: token})
+
+	if rErr != nil {
+		st, ok := status.FromError(rErr)
+		if ok {
+			switch st.Code() {
+			case codes.DeadlineExceeded:
+				return 0, domain.ErrTokenExpired
+			case codes.Unauthenticated:
+				return 0, domain.ErrTokenNotValid
+			case codes.InvalidArgument:
+				return 0, rErr
+			default:
+				return 0, fmt.Errorf("unknown error: %v", st.Message())
+			}
+		}
+
+	}
+
+	return role.GetUserId(), nil
+}

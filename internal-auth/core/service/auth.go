@@ -79,3 +79,13 @@ func (as *AuthService) UserRole(userID int64) (domain.UserRole, error) {
 	}
 	return user.Role, nil
 }
+
+func (as *AuthService) UserID(token string) (int64, error) {
+	userID, guIDErr := as.ts.GetUserID(token)
+	if guIDErr != nil {
+		//domain.ErrTokenNotValid
+		//domain.ErrTokenExpired
+		return 0, guIDErr
+	}
+	return userID, nil
+}

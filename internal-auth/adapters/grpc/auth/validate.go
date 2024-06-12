@@ -39,3 +39,10 @@ func ValidateUserRole(req *auth.UserRoleRequest) error {
 	}
 	return nil
 }
+
+func ValidateUserID(req *auth.UserIDRequest) error {
+	if req.GetToken() == "" {
+		return status.Error(codes.InvalidArgument, "token is required")
+	}
+	return nil
+}

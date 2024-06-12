@@ -2,11 +2,9 @@ package utils
 
 import (
 	"errors"
-	"github.com/golang-jwt/jwt/v5"
 	"myapp/internal-xkcd/core/domain"
 	"myapp/internal-xkcd/core/port"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -53,65 +51,31 @@ func AuthMiddleware(requiredRoles map[domain.UserRole]bool, ac port.AuthClient, 
 
 		accessToken := fields[1]
 
-		token, _, err := new(jwt.Parser).ParseUnverified(accessToken, jwt.MapClaims{})
-		if err != nil {
-			http.Error(w, "token is not valid", http.StatusBadGateway)
-			return
+		//validate token and return userID
+		userID, uIDErr := ac.UserID(accessToken)
+		if uIDErr != nil {
+			switch {
+			case errors.Is(uIDErr, domain.ErrTokenExpired):
+				http.Error(w, "token expired", http.StatusUnauthorized)
+			case errors.Is(uIDErr, domain.ErrTokenNotValid):
+				http.Error(w, "token is not valid", http.StatusUnauthorized)
+			default:
+				http.Error(w, "", http.StatusUnauthorized)
+			}
 		}
 
-		userIDString, sErr := token.Claims.GetSubject()
-		if sErr != nil {
-			http.Error(w, "token is not valid", http.StatusBadGateway)
-			return
-		}
-
-		userID, cErr := strconv.Atoi(userIDString)
-		if cErr != nil {
-			http.Error(w, "token is not valid", http.StatusBadGateway)
-			return
-		}
-
-		//validate token and return role
-		userRole, rErr := ac.UserRole(int64(userID))
+		userRole, rErr := ac.UserRole(userID)
 		if rErr != nil {
-			http.Error(w, "token is not valid", http.StatusBadGateway)
+			//domain.ErrUserNotFound
+			http.Error(w, "token is not valid", http.StatusUnauthorized)
 			return
 		}
-
-		//
-		//userLogin, tErr := ts.GetUserByTokenString(accessToken)
-		//if tErr != nil {
-		//	switch {
-		//	case errors.Is(tErr, domain.ErrTokenExpired):
-		//		http.Error(w, "token expired", http.StatusUnauthorized)
-		//		return
-		//	case errors.Is(tErr, domain.ErrTokenNotValid):
-		//		http.Error(w, "invalid token", http.StatusUnauthorized)
-		//		return
-		//	default:
-		//		http.Error(w, "auth failed", http.StatusInternalServerError)
-		//		return
-		//	}
-		//}
-		//
-		//user, rguErr := ur.GetUserByLogin(userLogin)
-		//if rguErr != nil {
-		//	switch {
-		//	case errors.Is(rguErr, domain.ErrUserNotFound):
-		//		slog.Error("Error attempt to log in using a non-existent login", slog.String("token", accessToken))
-		//		http.Error(w, "invalid token", http.StatusUnauthorized)
-		//		return
-		//	default:
-		//		http.Error(w, "auth failed", http.StatusInternalServerError)
-		//		return
-		//	}
-		//}
 
 		if !requiredRoles[userRole] {
 			http.Error(w, "insufficient permissions", http.StatusForbidden)
 			return
 		}
-		RateLimiterMiddleware(int64(userID), l, next)(w, r)
+		RateLimiterMiddleware(userID, l, next)(w, r)
 	}
 }
 
