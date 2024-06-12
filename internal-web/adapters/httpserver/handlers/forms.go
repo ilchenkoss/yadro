@@ -120,7 +120,10 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pageData.Comics = comics
+	if len(comics) > 0 {
+		pageData.Comics = comics
+	}
+
 	eErr := fh.TemplateExecutor.Comics(w, pageData)
 	if eErr != nil {
 		http.Error(w, "", http.StatusInternalServerError)

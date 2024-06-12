@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"myapp/internal-xkcd/adapters"
 	"myapp/internal-xkcd/adapters/httpserver/handlers/utils"
+	"myapp/internal-xkcd/core/domain"
 	"myapp/internal-xkcd/core/port"
 	"net/http"
 	"strconv"
@@ -32,7 +33,11 @@ func (s *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	requestWeights := s.ws.WeightRequest(requestString)
 	if len(requestWeights) == 0 {
-		http.Error(w, "Request empty", http.StatusBadRequest)
+		err := json.NewEncoder(w).Encode(utils.NewSearchResponse(true, "Success", []domain.Comics{}))
+		if err != nil {
+			//nothing
+			return
+		}
 		return
 	}
 
