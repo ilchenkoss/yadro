@@ -37,7 +37,6 @@ type HttpServerConfig struct {
 	EnvPath          string `yaml:"env_path"`
 	Host             string `yaml:"host"`
 	Port             string `yaml:"port"`
-	TokenMaxTime     int    `yaml:"token_max_time"`
 	ConcurrencyLimit int    `yaml:"concurrency_limit"`
 	RateLimit        int    `yaml:"rate_limit"`
 }
