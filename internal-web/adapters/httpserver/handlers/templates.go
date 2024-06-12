@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"myapp/internal-web/core/domain"
 	"net/http"
 )
@@ -30,10 +32,18 @@ func (te *TemplateExecutor) Home(w http.ResponseWriter, data domain.HomeTemplate
 		return fmt.Errorf("error parsing template Home: %w", pfErr)
 	}
 
-	exErr := ts.Execute(w, data)
+	var buffer bytes.Buffer
+
+	exErr := ts.Execute(&buffer, data)
 	if exErr != nil {
-		return fmt.Errorf("error executing template Home: %w", pfErr)
+		return fmt.Errorf("error executing template Home to buffer: %w", pfErr)
 	}
+
+	_, err := io.Copy(w, &buffer)
+	if err != nil {
+		return fmt.Errorf("error writing buffer to ResponseWriter: %w", err)
+	}
+
 	return nil
 }
 
@@ -51,10 +61,18 @@ func (te *TemplateExecutor) Login(w http.ResponseWriter, data domain.LoginTempla
 		return fmt.Errorf("error parsing template Login: %w", pfErr)
 	}
 
-	exErr := ts.Execute(w, data)
+	var buffer bytes.Buffer
+
+	exErr := ts.Execute(&buffer, data)
 	if exErr != nil {
-		return fmt.Errorf("error executing template Login: %w", pfErr)
+		return fmt.Errorf("error executing template Login to buffer: %w", pfErr)
 	}
+
+	_, err := io.Copy(w, &buffer)
+	if err != nil {
+		return fmt.Errorf("error writing buffer to ResponseWriter: %w", err)
+	}
+
 	return nil
 }
 
@@ -72,9 +90,16 @@ func (te *TemplateExecutor) Comics(w http.ResponseWriter, data domain.ComicsTemp
 		return fmt.Errorf("error parsing template Comics: %w", pfErr)
 	}
 
-	exErr := ts.Execute(w, data)
+	var buffer bytes.Buffer
+
+	exErr := ts.Execute(&buffer, data)
 	if exErr != nil {
-		return fmt.Errorf("error executing template Comics: %w", pfErr)
+		return fmt.Errorf("error executing template Comics to buffer: %w", pfErr)
+	}
+
+	_, err := io.Copy(w, &buffer)
+	if err != nil {
+		return fmt.Errorf("error writing buffer to ResponseWriter: %w", err)
 	}
 	return nil
 }
