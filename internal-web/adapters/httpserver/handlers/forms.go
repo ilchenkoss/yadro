@@ -116,6 +116,7 @@ func (fh *FormsHandler) ComicsForm(w http.ResponseWriter, r *http.Request) {
 		if eErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
+		return
 	}
 
 	//cookies valid
