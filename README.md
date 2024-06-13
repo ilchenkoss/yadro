@@ -1,7 +1,7 @@
 <h2 align="center">Service for searching and retrieving comics pictures from xkcd.com by keywords</h2>
 
 <p align="center">
-  <img src="https://github.com/ilchenkoss/yadro/blob/les9/example.gif" alt="Example">
+  <img src="https://github.com/ilchenkoss/yadro/blob/main/example.gif" alt="Example">
 </p>
 
 ##  Service Structure
