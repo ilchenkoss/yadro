@@ -1,5 +1,21 @@
 deps:
 	@go get ./...
+grpc_gen:
+	@protoc \
+    		--proto_path pkg/proto\
+    		 --go_out=./pkg/proto/gen\
+    		  --go_opt=paths=source_relative\
+    		   --go-grpc_out=./pkg/proto/gen\
+    			--go-grpc_opt=paths=source_relative \
+    			pkg/proto/*.proto
+xkcd: deps
+	@go build -o xkcd-server ./cmd/xkcd-server
+auth: deps
+	@go build -o auth-server ./cmd/auth-server
+web: deps
+	@go build -o web-server ./cmd/web-server
+servers_start:grpc_gen xkcd web auth
+	@sh servers_start.sh
 
 test: deps
 	@echo "Running Tests"
@@ -11,15 +27,13 @@ lint: deps
 	@echo "Running Linting and Vetting"
 	@gofmt -l .
 	@go vet -v ./...
-	@sh golangci-lint_install.sh
 	@./bin/golangci-lint run -v
 sec: deps
 	@echo "Running Security Checks"
 	@trivy fs . --scanners vuln
 	@govulncheck ./...
 
-server: deps
-	@go build -o xkcd-server ./cmd/xkcd-server
+e2e: auth xkcd
+	@sh ./e2e_test.sh
 
-e2e: server
-	@sudo sh ./e2e_test.sh
+make_all: test lint sec servers_start

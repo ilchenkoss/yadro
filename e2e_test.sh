@@ -4,9 +4,10 @@
 #brew install jq
 
 HOST="localhost"
-PORT="222"
+PORT="22222"
 
-sudo ./xkcd-server &
+./auth-server &
+./xkcd-server &
 
 sleep 5
 
@@ -20,6 +21,8 @@ if [ -n "$TOKEN" ]; then
   echo "Token: $TOKEN"
 else
   echo "Error from get token"
+  pkill xkcd-server
+  pkill auth-server
   exit 1
 fi
 
@@ -33,6 +36,8 @@ if [ -n "$NEW_COMICS" ]; then
   echo "New comics: $NEW_COMICS; Total comics: $TOTAL_COMICS"
 else
   echo "Error update comics"
+  pkill xkcd-server
+  pkill auth-server
   exit 1
 fi
 
@@ -45,6 +50,8 @@ if [ -n "$PICTURES" ]; then
   echo "Find pictures: $PICTURES"
 else
   echo "Error find pictures"
+  pkill xkcd-server
+  pkill auth-server
   exit 1
 fi
 
@@ -52,7 +59,11 @@ if echo "$PICTURES" | grep -q "https://imgs.xkcd.com/comics/an_apple_a_day.png";
   echo 'Picture "https://imgs.xkcd.com/comics/an_apple_a_day.png" contains in result'
 else
   echo 'Picture "https://imgs.xkcd.com/comics/an_apple_a_day.png" not found in result'
+  pkill xkcd-server
+  pkill auth-server
   exit 1
 fi
 
-sudo pkill xkcd-server
+pkill xkcd-server
+pkill auth-server
+exit 0

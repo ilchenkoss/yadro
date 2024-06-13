@@ -1,0 +1,19 @@
+.comic_picture {
+    width: 500px;
+}
+
+
+.quote {
+    width: 500px;
+}
+.quote p {
+    font-style: normal;
+    font-weight: normal;
+    font-size: 22px;
+}
+.quote cite {
+    font-style: italic;
+    font-weight: normal;
+    font-size: 22px;
+    color: #aaaaaa;
+}

@@ -1,0 +1,24 @@
+{{define "main"}}
+<div class="form_auth_block">
+    <p class="form_auth_block_head_text">Авторизация</p>
+    {{if .Logged}}
+        <form action="/logout" method="post">
+            <label>Вы уже авторизованы, если вы хотите завершить сеанс, выполните</label>
+            <button class="form_auth_button" type="submit" name="form_auth_submit">Выход</button>
+        </form>
+    {{else}}
+        <form class="form_auth_style" action="/login" method="post">
+            <label>Введите Ваш логин</label>
+            <input type="text" name="auth_login" placeholder="Введите Ваш логин" required >
+            <br>
+            <label>Введите Ваш пароль</label>
+            <input type="password" name="auth_pass" placeholder="Введите пароль" required >
+            <button class="form_auth_button" type="submit" name="form_auth_submit">Войти</button>
+            <br>
+            {{if .LoginErr}}
+            <p class="error">Error: {{.LoginErr}}</p>
+            {{end}}
+        </form>
+    {{end}}
+</div>
+{{end}}

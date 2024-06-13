@@ -2,15 +2,13 @@ package main
 
 import (
 	"flag"
-	"myapp/internal/app"
-	"myapp/internal/config"
-	"strings"
+	"myapp/internal-xkcd/app"
+	"myapp/internal-xkcd/config"
 )
 
 func main() {
 
-	configPath := flag.String("c", "./internal/config/config.yaml", "path to cfg *.yaml file")
-	superAdmin := flag.String("sa", "humorist yqS~1v1vKcuMs~", "login password for super admin")
+	configPath := flag.String("c", "./internal-xkcd/config/config.yaml", "path to cfg *.yaml file")
 	flag.Parse()
 
 	cfg, cfgErr := config.GetConfig(*configPath)
@@ -18,7 +16,5 @@ func main() {
 		panic(cfgErr)
 	}
 
-	SuperAdminLoginPassword := strings.Fields(*superAdmin)
-
-	app.Run(cfg, SuperAdminLoginPassword)
+	app.Run(cfg)
 }

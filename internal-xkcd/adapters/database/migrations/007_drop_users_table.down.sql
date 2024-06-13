@@ -1,0 +1,1 @@
+ALTER TABLE users_must_delete RENAME TO users;

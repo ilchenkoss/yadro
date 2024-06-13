@@ -1,0 +1,9 @@
+host: "127.0.0.1"
+port: "33333"
+
+static_path: "./internal-web/storage/static"
+template_path: "./internal-web/storage/template"
+
+xkcd_api_url: "http://127.0.0.1:22222"
+
+yandex_gpt_api_auth_url: "https://iam.api.cloud.yandex.net/"
